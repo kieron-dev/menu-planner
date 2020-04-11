@@ -1,11 +1,15 @@
 import React from 'react';
-import Welcome from './components/Welcome';
+import LoginWrapper from './components/LoginWrapper';
+import {AuthProvider} from './components/AuthProvider';
+
 import 'semantic-ui-css/semantic.min.css';
 
 function App() {
   return (
     <div className="App">
-      <Welcome />
+      <AuthProvider>
+        <LoginWrapper />
+      </AuthProvider>
     </div>
   );
 }
