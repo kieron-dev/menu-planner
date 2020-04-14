@@ -36,6 +36,7 @@ type Handlers struct {
 
 func New(audience string, tokenVerifier TokenVerifier, jwtDecoder JWTDecoder, localAuther LocalAuther) *Handlers {
 	return &Handlers{
+		audience:      audience,
 		tokenVerifier: tokenVerifier,
 		jwtDecoder:    jwtDecoder,
 		localAuther:   localAuther,

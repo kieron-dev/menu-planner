@@ -23,6 +23,7 @@ var _ = Describe("Auth", func() {
 		localAuther   *handlersfakes.FakeLocalAuther
 		recorder      *httptest.ResponseRecorder
 		req           *http.Request
+		audience      string
 		bodyBytes     []byte
 	)
 
@@ -32,7 +33,8 @@ var _ = Describe("Auth", func() {
 		jwtDecoder = new(handlersfakes.FakeJWTDecoder)
 		jwtDecoder.ClaimSetReturns(map[string]string{"email": "bar@foo.com", "name": "bar"}, nil)
 		localAuther = new(handlersfakes.FakeLocalAuther)
-		httpHandlers = handlers.New(tokenVerifier, jwtDecoder, localAuther)
+		audience = "my.audience"
+		httpHandlers = handlers.New(audience, tokenVerifier, jwtDecoder, localAuther)
 		hf = http.HandlerFunc(httpHandlers.AuthGoogle)
 		recorder = httptest.NewRecorder()
 		bodyBytes = []byte("{}")
@@ -50,7 +52,28 @@ var _ = Describe("Auth", func() {
 
 		When("the token is valid", func() {
 			BeforeEach(func() {
+				bodyBytes = []byte(`{"tokenID":"my.google.token"}`)
+				jwtDecoder.ClaimSetReturns(map[string]string{"name": "bob", "email": "bob@bits.com"}, nil)
 				localAuther.LocalAuthReturns("a.valid.token", nil)
+			})
+
+			It("calls the validator with correct args", func() {
+				Expect(tokenVerifier.VerifyIDTokenCallCount()).To(Equal(1))
+				token, aud := tokenVerifier.VerifyIDTokenArgsForCall(0)
+				Expect(token).To(Equal("my.google.token"))
+				Expect(aud).To(ConsistOf("my.audience"))
+			})
+
+			It("sends the token to the decoder", func() {
+				Expect(jwtDecoder.ClaimSetCallCount()).To(Equal(1))
+				Expect(jwtDecoder.ClaimSetArgsForCall(0)).To(Equal("my.google.token"))
+			})
+
+			It("sends email and name to local auth'er", func() {
+				Expect(localAuther.LocalAuthCallCount()).To(Equal(1))
+				email, name := localAuther.LocalAuthArgsForCall(0)
+				Expect(email).To(Equal("bob@bits.com"))
+				Expect(name).To(Equal("bob"))
 			})
 
 			It("succeeds", func() {
