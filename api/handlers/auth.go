@@ -18,7 +18,7 @@ type TokenVerifier interface {
 //counterfeiter:generate . JWTDecoder
 
 type JWTDecoder interface {
-	ClaimSet(token string) (map[string]string, error)
+	ClaimSet(token string) (map[string]interface{}, error)
 }
 
 //counterfeiter:generate . LocalAuther
@@ -84,6 +84,13 @@ func (h *Handlers) AuthGoogle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	emailStr, ok := email.(string)
+	if !ok {
+		log.Printf("email-not-a-string: %v\n", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
 	name, ok := claimSet["name"]
 	if !ok {
 		log.Printf("name-missing: %v\n", err)
@@ -91,7 +98,14 @@ func (h *Handlers) AuthGoogle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokenString, err := h.localAuther.LocalAuth(email, name)
+	nameStr, ok := name.(string)
+	if !ok {
+		log.Printf("name-not-a-string: %v\n", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	tokenString, err := h.localAuther.LocalAuth(emailStr, nameStr)
 	if err != nil {
 		log.Printf("local-auth: %v\n", err)
 		w.WriteHeader(http.StatusInternalServerError)

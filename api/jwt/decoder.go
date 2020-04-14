@@ -13,7 +13,7 @@ func NewJWT() *JWT {
 	return &JWT{}
 }
 
-func (j *JWT) ClaimSet(token string) (map[string]string, error) {
+func (j *JWT) ClaimSet(token string) (map[string]interface{}, error) {
 	parts := strings.Split(token, ".")
 	if len(parts) != 3 {
 		return nil, fmt.Errorf("invalid-format %q", token)
@@ -24,7 +24,7 @@ func (j *JWT) ClaimSet(token string) (map[string]string, error) {
 		return nil, fmt.Errorf("decoding-token-failed %w", err)
 	}
 
-	var ret map[string]string
+	var ret map[string]interface{}
 	err = json.Unmarshal(decoded, &ret)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshalling-token-failed %w", err)

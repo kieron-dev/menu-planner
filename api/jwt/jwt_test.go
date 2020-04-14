@@ -14,7 +14,7 @@ var _ = Describe("Jwt", func() {
 	var (
 		token    string
 		j        *jwt.JWT
-		claimSet map[string]string
+		claimSet map[string]interface{}
 		err      error
 	)
 
@@ -27,7 +27,7 @@ var _ = Describe("Jwt", func() {
 	})
 
 	When("token is valid", func() {
-		plain := `{"foo": "bar"}`
+		plain := `{"foo": "bar", "valid": true, "count": 42}`
 		b64 := base64.StdEncoding.EncodeToString([]byte(plain))
 
 		BeforeEach(func() {
@@ -38,6 +38,15 @@ var _ = Describe("Jwt", func() {
 			foo, ok := claimSet["foo"]
 			Expect(ok).To(BeTrue(), "foo wasn't present in claimSet")
 			Expect(foo).To(Equal("bar"))
+
+			valid, ok := claimSet["valid"]
+			Expect(ok).To(BeTrue(), "valid wasn't present in claimSet")
+			Expect(valid).To(BeTrue())
+
+			count, ok := claimSet["count"]
+			Expect(ok).To(BeTrue(), "count wasn't present in claimSet")
+			Expect(count).To(Equal(float64(42)))
+
 		})
 	})
 

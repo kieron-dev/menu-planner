@@ -8,24 +8,24 @@ import (
 )
 
 type FakeJWTDecoder struct {
-	ClaimSetStub        func(string) (map[string]string, error)
+	ClaimSetStub        func(string) (map[string]interface{}, error)
 	claimSetMutex       sync.RWMutex
 	claimSetArgsForCall []struct {
 		arg1 string
 	}
 	claimSetReturns struct {
-		result1 map[string]string
+		result1 map[string]interface{}
 		result2 error
 	}
 	claimSetReturnsOnCall map[int]struct {
-		result1 map[string]string
+		result1 map[string]interface{}
 		result2 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeJWTDecoder) ClaimSet(arg1 string) (map[string]string, error) {
+func (fake *FakeJWTDecoder) ClaimSet(arg1 string) (map[string]interface{}, error) {
 	fake.claimSetMutex.Lock()
 	ret, specificReturn := fake.claimSetReturnsOnCall[len(fake.claimSetArgsForCall)]
 	fake.claimSetArgsForCall = append(fake.claimSetArgsForCall, struct {
@@ -49,7 +49,7 @@ func (fake *FakeJWTDecoder) ClaimSetCallCount() int {
 	return len(fake.claimSetArgsForCall)
 }
 
-func (fake *FakeJWTDecoder) ClaimSetCalls(stub func(string) (map[string]string, error)) {
+func (fake *FakeJWTDecoder) ClaimSetCalls(stub func(string) (map[string]interface{}, error)) {
 	fake.claimSetMutex.Lock()
 	defer fake.claimSetMutex.Unlock()
 	fake.ClaimSetStub = stub
@@ -62,28 +62,28 @@ func (fake *FakeJWTDecoder) ClaimSetArgsForCall(i int) string {
 	return argsForCall.arg1
 }
 
-func (fake *FakeJWTDecoder) ClaimSetReturns(result1 map[string]string, result2 error) {
+func (fake *FakeJWTDecoder) ClaimSetReturns(result1 map[string]interface{}, result2 error) {
 	fake.claimSetMutex.Lock()
 	defer fake.claimSetMutex.Unlock()
 	fake.ClaimSetStub = nil
 	fake.claimSetReturns = struct {
-		result1 map[string]string
+		result1 map[string]interface{}
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeJWTDecoder) ClaimSetReturnsOnCall(i int, result1 map[string]string, result2 error) {
+func (fake *FakeJWTDecoder) ClaimSetReturnsOnCall(i int, result1 map[string]interface{}, result2 error) {
 	fake.claimSetMutex.Lock()
 	defer fake.claimSetMutex.Unlock()
 	fake.ClaimSetStub = nil
 	if fake.claimSetReturnsOnCall == nil {
 		fake.claimSetReturnsOnCall = make(map[int]struct {
-			result1 map[string]string
+			result1 map[string]interface{}
 			result2 error
 		})
 	}
 	fake.claimSetReturnsOnCall[i] = struct {
-		result1 map[string]string
+		result1 map[string]interface{}
 		result2 error
 	}{result1, result2}
 }

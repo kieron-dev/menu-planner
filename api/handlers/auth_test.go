@@ -31,7 +31,7 @@ var _ = Describe("Auth", func() {
 		log.SetOutput(GinkgoWriter)
 		tokenVerifier = new(handlersfakes.FakeTokenVerifier)
 		jwtDecoder = new(handlersfakes.FakeJWTDecoder)
-		jwtDecoder.ClaimSetReturns(map[string]string{"email": "bar@foo.com", "name": "bar"}, nil)
+		jwtDecoder.ClaimSetReturns(map[string]interface{}{"email": "bar@foo.com", "name": "bar"}, nil)
 		localAuther = new(handlersfakes.FakeLocalAuther)
 		audience = "my.audience"
 		httpHandlers = handlers.New(audience, tokenVerifier, jwtDecoder, localAuther)
@@ -53,7 +53,7 @@ var _ = Describe("Auth", func() {
 		When("the token is valid", func() {
 			BeforeEach(func() {
 				bodyBytes = []byte(`{"tokenID":"my.google.token"}`)
-				jwtDecoder.ClaimSetReturns(map[string]string{"name": "bob", "email": "bob@bits.com"}, nil)
+				jwtDecoder.ClaimSetReturns(map[string]interface{}{"name": "bob", "email": "bob@bits.com"}, nil)
 				localAuther.LocalAuthReturns("a.valid.token", nil)
 			})
 
@@ -114,7 +114,7 @@ var _ = Describe("Auth", func() {
 
 		When("the token doesn't include email address", func() {
 			BeforeEach(func() {
-				jwtDecoder.ClaimSetReturns(map[string]string{"foo": "bar"}, nil)
+				jwtDecoder.ClaimSetReturns(map[string]interface{}{"foo": "bar"}, nil)
 			})
 
 			It("fails with bad request error", func() {
@@ -124,7 +124,7 @@ var _ = Describe("Auth", func() {
 
 		When("the token doesn't include name", func() {
 			BeforeEach(func() {
-				jwtDecoder.ClaimSetReturns(map[string]string{"email": "bar@foo.com"}, nil)
+				jwtDecoder.ClaimSetReturns(map[string]interface{}{"email": "bar@foo.com"}, nil)
 			})
 
 			It("fails with bad request error", func() {
