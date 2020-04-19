@@ -5,6 +5,7 @@ import (
 
 	"github.com/kieron-pivotal/menu-planner-app/auth"
 	"github.com/kieron-pivotal/menu-planner-app/auth/authfakes"
+	"github.com/kieron-pivotal/menu-planner-app/db"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -64,7 +65,7 @@ var _ = Describe("LocalAuth", func() {
 
 		When("there is no existing user with that email", func() {
 			BeforeEach(func() {
-				fakeUserStore.FindByEmailReturns(nil, nil)
+				fakeUserStore.FindByEmailReturns(nil, db.NotFoundErr())
 				fakeUser.IDReturns("new234")
 				fakeUserStore.CreateReturns(fakeUser, nil)
 			})
@@ -107,7 +108,7 @@ var _ = Describe("LocalAuth", func() {
 
 		When("create user fails", func() {
 			BeforeEach(func() {
-				fakeUserStore.FindByEmailReturns(nil, nil)
+				fakeUserStore.FindByEmailReturns(nil, db.NotFoundErr())
 				fakeUserStore.CreateReturns(nil, errors.New("mmm"))
 			})
 

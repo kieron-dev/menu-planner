@@ -1,6 +1,10 @@
 package auth
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/kieron-pivotal/menu-planner-app/db"
+)
 
 //counterfeiter:generate . User
 
@@ -42,10 +46,11 @@ func NewLocalAuth(userStore UserStore, jwtGen JWTGenerator) *LocalAuth {
 // exists, or will create a new entry in the database for the user.
 func (a *LocalAuth) LocalAuth(email, name string) (string, error) {
 	user, err := a.userStore.FindByEmail(email)
+
 	if err != nil {
-		return "", fmt.Errorf("local-auth failed looking up user %w", err)
-	}
-	if user == nil {
+		if !db.IsNotFoundErr(err) {
+			return "", fmt.Errorf("local-auth failed looking up user %w", err)
+		}
 		user, err = a.userStore.Create(email, name)
 		if err != nil {
 			return "", fmt.Errorf("local-auth failed creating new user %w", err)
