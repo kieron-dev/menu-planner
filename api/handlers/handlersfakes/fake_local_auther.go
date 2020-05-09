@@ -8,25 +8,25 @@ import (
 )
 
 type FakeLocalAuther struct {
-	LocalAuthStub        func(string, string) (string, error)
+	LocalAuthStub        func(string, string) (handlers.User, error)
 	localAuthMutex       sync.RWMutex
 	localAuthArgsForCall []struct {
 		arg1 string
 		arg2 string
 	}
 	localAuthReturns struct {
-		result1 string
+		result1 handlers.User
 		result2 error
 	}
 	localAuthReturnsOnCall map[int]struct {
-		result1 string
+		result1 handlers.User
 		result2 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeLocalAuther) LocalAuth(arg1 string, arg2 string) (string, error) {
+func (fake *FakeLocalAuther) LocalAuth(arg1 string, arg2 string) (handlers.User, error) {
 	fake.localAuthMutex.Lock()
 	ret, specificReturn := fake.localAuthReturnsOnCall[len(fake.localAuthArgsForCall)]
 	fake.localAuthArgsForCall = append(fake.localAuthArgsForCall, struct {
@@ -51,7 +51,7 @@ func (fake *FakeLocalAuther) LocalAuthCallCount() int {
 	return len(fake.localAuthArgsForCall)
 }
 
-func (fake *FakeLocalAuther) LocalAuthCalls(stub func(string, string) (string, error)) {
+func (fake *FakeLocalAuther) LocalAuthCalls(stub func(string, string) (handlers.User, error)) {
 	fake.localAuthMutex.Lock()
 	defer fake.localAuthMutex.Unlock()
 	fake.LocalAuthStub = stub
@@ -64,28 +64,28 @@ func (fake *FakeLocalAuther) LocalAuthArgsForCall(i int) (string, string) {
 	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakeLocalAuther) LocalAuthReturns(result1 string, result2 error) {
+func (fake *FakeLocalAuther) LocalAuthReturns(result1 handlers.User, result2 error) {
 	fake.localAuthMutex.Lock()
 	defer fake.localAuthMutex.Unlock()
 	fake.LocalAuthStub = nil
 	fake.localAuthReturns = struct {
-		result1 string
+		result1 handlers.User
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeLocalAuther) LocalAuthReturnsOnCall(i int, result1 string, result2 error) {
+func (fake *FakeLocalAuther) LocalAuthReturnsOnCall(i int, result1 handlers.User, result2 error) {
 	fake.localAuthMutex.Lock()
 	defer fake.localAuthMutex.Unlock()
 	fake.LocalAuthStub = nil
 	if fake.localAuthReturnsOnCall == nil {
 		fake.localAuthReturnsOnCall = make(map[int]struct {
-			result1 string
+			result1 handlers.User
 			result2 error
 		})
 	}
 	fake.localAuthReturnsOnCall[i] = struct {
-		result1 string
+		result1 handlers.User
 		result2 error
 	}{result1, result2}
 }

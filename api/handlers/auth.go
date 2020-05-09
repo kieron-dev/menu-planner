@@ -2,9 +2,12 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
+
+	"github.com/kieron-pivotal/menu-planner-app/session"
 )
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
@@ -21,29 +24,51 @@ type JWTDecoder interface {
 	ClaimSet(token string) (map[string]interface{}, error)
 }
 
+//counterfeiter:generate . User
+
+type User interface {
+	Name() string
+	ID() int
+}
+
 //counterfeiter:generate . LocalAuther
 
 type LocalAuther interface {
-	LocalAuth(email, name string) (token string, err error)
+	LocalAuth(email, name string) (user User, err error)
 }
 
-type Handlers struct {
+//counterfeiter:generate . SessionSetter
+
+type SessionSetter interface {
+	Set(r *http.Request, w http.ResponseWriter, s *session.Session) error
+}
+
+type AuthHandler struct {
 	audience      string
 	tokenVerifier TokenVerifier
 	jwtDecoder    JWTDecoder
 	localAuther   LocalAuther
+	sessionSetter SessionSetter
 }
 
-func New(audience string, tokenVerifier TokenVerifier, jwtDecoder JWTDecoder, localAuther LocalAuther) *Handlers {
-	return &Handlers{
+func New(
+	audience string,
+	tokenVerifier TokenVerifier,
+	jwtDecoder JWTDecoder,
+	localAuther LocalAuther,
+	sessionSetter SessionSetter,
+) *AuthHandler {
+
+	return &AuthHandler{
 		audience:      audience,
 		tokenVerifier: tokenVerifier,
 		jwtDecoder:    jwtDecoder,
 		localAuther:   localAuther,
+		sessionSetter: sessionSetter,
 	}
 }
 
-func (h *Handlers) AuthGoogle(w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandler) AuthGoogle(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -77,52 +102,62 @@ func (h *Handlers) AuthGoogle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	email, ok := claimSet["email"]
-	if !ok {
-		log.Printf("email-missing: %v\n", err)
+	var email, name string
+	if email, err = extractString(claimSet, "email"); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	emailStr, ok := email.(string)
-	if !ok {
-		log.Printf("email-not-a-string: %v\n", err)
+	if name, err = extractString(claimSet, "name"); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	name, ok := claimSet["name"]
-	if !ok {
-		log.Printf("name-missing: %v\n", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	nameStr, ok := name.(string)
-	if !ok {
-		log.Printf("name-not-a-string: %v\n", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	tokenString, err := h.localAuther.LocalAuth(emailStr, nameStr)
+	user, err := h.localAuther.LocalAuth(email, name)
 	if err != nil {
 		log.Printf("local-auth: %v\n", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	var respObj struct {
-		Token string `json:"token"`
+	sess := session.Session{
+		IsLoggedIn: true,
+		ID:         user.ID(),
+		Name:       user.Name(),
 	}
-	respObj.Token = tokenString
-	respBytes, err := json.Marshal(respObj)
 
-	if err != nil {
-		log.Printf("marshal-response: %v\n", err)
+	if err := h.sessionSetter.Set(r, w, &sess); err != nil {
+		log.Printf("failed-to-set-session: %v\n", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	w.Write(respBytes)
+	// var respObj struct {
+	// 	Token string `json:"token"`
+	// }
+	// respObj.Token = tokenString
+	// respBytes, err := json.Marshal(respObj)
+
+	// if err != nil {
+	// 	log.Printf("marshal-response: %v\n", err)
+	// 	w.WriteHeader(http.StatusInternalServerError)
+	// 	return
+	// }
+
+	// w.Write(respBytes)
+}
+
+func extractString(claimSet map[string]interface{}, key string) (string, error) {
+	val, ok := claimSet[key]
+	if !ok {
+		log.Printf("missing key %q\n", key)
+		return "", fmt.Errorf("key %q not in claimSet", key)
+	}
+
+	valStr, ok := val.(string)
+	if !ok {
+		log.Printf("%q not-a-string\n", key)
+		return "", fmt.Errorf("%q is a %t - expected string", val, val)
+	}
+	return valStr, nil
 }

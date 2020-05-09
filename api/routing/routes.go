@@ -8,30 +8,39 @@ import (
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
 
-//counterfeiter:generate . Handlers
+//counterfeiter:generate . AuthHandler
 
-type Handlers interface {
+type AuthHandler interface {
 	AuthGoogle(w http.ResponseWriter, r *http.Request)
 }
 
-type Routes struct {
-	frontendURI string
-	handlers    Handlers
+//counterfeiter:generate . SessionManager
+
+type SessionManager interface {
+	SessionMiddleware(next http.Handler) http.Handler
 }
 
-func New(frontendURI string, handlers Handlers) Routes {
+type Routes struct {
+	frontendURI    string
+	sessionManager SessionManager
+	authHandler    AuthHandler
+}
+
+func New(frontendURI string, sessionManager SessionManager, authHandler AuthHandler) Routes {
 	return Routes{
-		frontendURI: frontendURI,
-		handlers:    handlers,
+		frontendURI:    frontendURI,
+		sessionManager: sessionManager,
+		authHandler:    authHandler,
 	}
 }
 
 func (r Routes) SetupRoutes() *mux.Router {
 	m := mux.NewRouter()
 
-	m.HandleFunc("/authGoogle", r.handlers.AuthGoogle).Methods("POST", "OPTIONS")
+	m.HandleFunc("/authGoogle", r.authHandler.AuthGoogle).Methods("POST", "OPTIONS")
 	m.Use(mux.CORSMethodMiddleware(m))
 	m.Use(r.CORSOriginMiddleware)
+	m.Use(r.sessionManager.SessionMiddleware)
 
 	return m
 }

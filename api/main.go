@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	googleAuthIDTokenVerifier "github.com/futurenda/google-auth-id-token-verifier"
 	"github.com/kieron-pivotal/menu-planner-app/auth"
@@ -24,4 +26,12 @@ func main() {
 	r := routes.SetupRoutes()
 
 	log.Fatal(http.ListenAndServe("localhost:8080", r))
+}
+
+func mustGetEnv(v string) string {
+	s := os.Getenv(v)
+	if s != "" {
+		return s
+	}
+	panic(fmt.Sprintf("env var %q not set", v))
 }

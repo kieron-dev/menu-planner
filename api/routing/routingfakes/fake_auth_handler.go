@@ -8,7 +8,7 @@ import (
 	"github.com/kieron-pivotal/menu-planner-app/routing"
 )
 
-type FakeHandlers struct {
+type FakeAuthHandler struct {
 	AuthGoogleStub        func(http.ResponseWriter, *http.Request)
 	authGoogleMutex       sync.RWMutex
 	authGoogleArgsForCall []struct {
@@ -19,7 +19,7 @@ type FakeHandlers struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeHandlers) AuthGoogle(arg1 http.ResponseWriter, arg2 *http.Request) {
+func (fake *FakeAuthHandler) AuthGoogle(arg1 http.ResponseWriter, arg2 *http.Request) {
 	fake.authGoogleMutex.Lock()
 	fake.authGoogleArgsForCall = append(fake.authGoogleArgsForCall, struct {
 		arg1 http.ResponseWriter
@@ -32,26 +32,26 @@ func (fake *FakeHandlers) AuthGoogle(arg1 http.ResponseWriter, arg2 *http.Reques
 	}
 }
 
-func (fake *FakeHandlers) AuthGoogleCallCount() int {
+func (fake *FakeAuthHandler) AuthGoogleCallCount() int {
 	fake.authGoogleMutex.RLock()
 	defer fake.authGoogleMutex.RUnlock()
 	return len(fake.authGoogleArgsForCall)
 }
 
-func (fake *FakeHandlers) AuthGoogleCalls(stub func(http.ResponseWriter, *http.Request)) {
+func (fake *FakeAuthHandler) AuthGoogleCalls(stub func(http.ResponseWriter, *http.Request)) {
 	fake.authGoogleMutex.Lock()
 	defer fake.authGoogleMutex.Unlock()
 	fake.AuthGoogleStub = stub
 }
 
-func (fake *FakeHandlers) AuthGoogleArgsForCall(i int) (http.ResponseWriter, *http.Request) {
+func (fake *FakeAuthHandler) AuthGoogleArgsForCall(i int) (http.ResponseWriter, *http.Request) {
 	fake.authGoogleMutex.RLock()
 	defer fake.authGoogleMutex.RUnlock()
 	argsForCall := fake.authGoogleArgsForCall[i]
 	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakeHandlers) Invocations() map[string][][]interface{} {
+func (fake *FakeAuthHandler) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.authGoogleMutex.RLock()
@@ -63,7 +63,7 @@ func (fake *FakeHandlers) Invocations() map[string][][]interface{} {
 	return copiedInvocations
 }
 
-func (fake *FakeHandlers) recordInvocation(key string, args []interface{}) {
+func (fake *FakeAuthHandler) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
@@ -75,4 +75,4 @@ func (fake *FakeHandlers) recordInvocation(key string, args []interface{}) {
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
-var _ routing.Handlers = new(FakeHandlers)
+var _ routing.AuthHandler = new(FakeAuthHandler)

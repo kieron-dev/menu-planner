@@ -16,15 +16,18 @@ import (
 var _ = Describe("Auth", func() {
 
 	var (
-		httpHandlers  *handlers.Handlers
+		httpHandlers  *handlers.AuthHandler
 		hf            http.HandlerFunc
 		tokenVerifier *handlersfakes.FakeTokenVerifier
 		jwtDecoder    *handlersfakes.FakeJWTDecoder
 		localAuther   *handlersfakes.FakeLocalAuther
+		sessionSetter *handlersfakes.FakeSessionSetter
+		user          *handlersfakes.FakeUser
 		recorder      *httptest.ResponseRecorder
 		req           *http.Request
 		audience      string
 		bodyBytes     []byte
+		sessionCookie *http.Cookie
 	)
 
 	BeforeEach(func() {
@@ -33,8 +36,10 @@ var _ = Describe("Auth", func() {
 		jwtDecoder = new(handlersfakes.FakeJWTDecoder)
 		jwtDecoder.ClaimSetReturns(map[string]interface{}{"email": "bar@foo.com", "name": "bar"}, nil)
 		localAuther = new(handlersfakes.FakeLocalAuther)
+		user = new(handlersfakes.FakeUser)
 		audience = "my.audience"
-		httpHandlers = handlers.New(audience, tokenVerifier, jwtDecoder, localAuther)
+		sessionSetter = new(handlersfakes.FakeSessionSetter)
+		httpHandlers = handlers.New(audience, tokenVerifier, jwtDecoder, localAuther, sessionSetter)
 		hf = http.HandlerFunc(httpHandlers.AuthGoogle)
 		recorder = httptest.NewRecorder()
 		bodyBytes = []byte("{}")
@@ -44,17 +49,21 @@ var _ = Describe("Auth", func() {
 		body := bytes.NewBuffer(bodyBytes)
 		var err error
 		req, err = http.NewRequest(http.MethodPost, "application/json", body)
+		if sessionCookie != nil {
+			req.AddCookie(sessionCookie)
+		}
 		Expect(err).NotTo(HaveOccurred())
 		hf.ServeHTTP(recorder, req)
 	})
 
 	Context("google auth", func() {
-
 		When("the token is valid", func() {
 			BeforeEach(func() {
 				bodyBytes = []byte(`{"tokenID":"my.google.token"}`)
 				jwtDecoder.ClaimSetReturns(map[string]interface{}{"name": "bob", "email": "bob@bits.com"}, nil)
-				localAuther.LocalAuthReturns("a.valid.token", nil)
+				localAuther.LocalAuthReturns(user, nil)
+				user.IDReturns(12345)
+				user.NameReturns("user-name")
 			})
 
 			It("calls the validator with correct args", func() {
@@ -76,9 +85,16 @@ var _ = Describe("Auth", func() {
 				Expect(name).To(Equal("bob"))
 			})
 
+			It("sets a new logged-in session", func() {
+				Expect(sessionSetter.SetCallCount()).To(Equal(1))
+				_, _, sess := sessionSetter.SetArgsForCall(0)
+				Expect(sess.ID).To(Equal(12345))
+				Expect(sess.Name).To(Equal("user-name"))
+				Expect(sess.IsLoggedIn).To(BeTrue())
+			})
+
 			It("succeeds", func() {
 				Expect(recorder.Code).To(Equal(http.StatusOK))
-				Expect(recorder.Body.String()).To(Equal(`{"token":"a.valid.token"}`))
 			})
 		})
 
@@ -134,7 +150,7 @@ var _ = Describe("Auth", func() {
 
 		When("local auth fails", func() {
 			BeforeEach(func() {
-				localAuther.LocalAuthReturns("", errors.New("oops"))
+				localAuther.LocalAuthReturns(nil, errors.New("oops"))
 			})
 
 			It("returns an internal server error", func() {
