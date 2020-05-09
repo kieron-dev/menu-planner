@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 
+	"github.com/kieron-pivotal/menu-planner-app/db"
 	"github.com/kieron-pivotal/menu-planner-app/handlers"
 	"github.com/kieron-pivotal/menu-planner-app/handlers/handlersfakes"
 	. "github.com/onsi/ginkgo"
@@ -20,8 +21,8 @@ var _ = Describe("Auth", func() {
 		hf            http.HandlerFunc
 		tokenVerifier *handlersfakes.FakeTokenVerifier
 		jwtDecoder    *handlersfakes.FakeJWTDecoder
-		localAuther   *handlersfakes.FakeLocalAuther
 		sessionSetter *handlersfakes.FakeSessionSetter
+		userStore     *handlersfakes.FakeUserStore
 		user          *handlersfakes.FakeUser
 		recorder      *httptest.ResponseRecorder
 		req           *http.Request
@@ -35,11 +36,17 @@ var _ = Describe("Auth", func() {
 		tokenVerifier = new(handlersfakes.FakeTokenVerifier)
 		jwtDecoder = new(handlersfakes.FakeJWTDecoder)
 		jwtDecoder.ClaimSetReturns(map[string]interface{}{"email": "bar@foo.com", "name": "bar"}, nil)
-		localAuther = new(handlersfakes.FakeLocalAuther)
+
 		user = new(handlersfakes.FakeUser)
+		user.IDReturns(12345)
+		user.NameReturns("user-name")
+
+		userStore = new(handlersfakes.FakeUserStore)
+		userStore.FindByEmailReturns(user, nil)
+
 		audience = "my.audience"
 		sessionSetter = new(handlersfakes.FakeSessionSetter)
-		httpHandlers = handlers.New(audience, tokenVerifier, jwtDecoder, localAuther, sessionSetter)
+		httpHandlers = handlers.New(audience, tokenVerifier, jwtDecoder, userStore, sessionSetter)
 		hf = http.HandlerFunc(httpHandlers.AuthGoogle)
 		recorder = httptest.NewRecorder()
 		bodyBytes = []byte("{}")
@@ -61,9 +68,6 @@ var _ = Describe("Auth", func() {
 			BeforeEach(func() {
 				bodyBytes = []byte(`{"tokenID":"my.google.token"}`)
 				jwtDecoder.ClaimSetReturns(map[string]interface{}{"name": "bob", "email": "bob@bits.com"}, nil)
-				localAuther.LocalAuthReturns(user, nil)
-				user.IDReturns(12345)
-				user.NameReturns("user-name")
 			})
 
 			It("calls the validator with correct args", func() {
@@ -78,11 +82,23 @@ var _ = Describe("Auth", func() {
 				Expect(jwtDecoder.ClaimSetArgsForCall(0)).To(Equal("my.google.token"))
 			})
 
-			It("sends email and name to local auth'er", func() {
-				Expect(localAuther.LocalAuthCallCount()).To(Equal(1))
-				email, name := localAuther.LocalAuthArgsForCall(0)
-				Expect(email).To(Equal("bob@bits.com"))
-				Expect(name).To(Equal("bob"))
+			It("tries to find user by email", func() {
+				Expect(userStore.FindByEmailCallCount()).To(Equal(1))
+				Expect(userStore.FindByEmailArgsForCall(0)).To(Equal("bob@bits.com"))
+			})
+
+			When("the user doesn't exist", func() {
+				BeforeEach(func() {
+					userStore.FindByEmailReturns(nil, db.NotFoundErr())
+					userStore.CreateReturns(user, nil)
+				})
+
+				It("creates the user", func() {
+					Expect(userStore.CreateCallCount()).To(Equal(1))
+					actualEmail, actualName := userStore.CreateArgsForCall(0)
+					Expect(actualEmail).To(Equal("bob@bits.com"))
+					Expect(actualName).To(Equal("bob"))
+				})
 			})
 
 			It("sets a new logged-in session", func() {
@@ -138,8 +154,9 @@ var _ = Describe("Auth", func() {
 			})
 		})
 
-		When("the token doesn't include name", func() {
+		When("the user must be created but the token doesn't include name", func() {
 			BeforeEach(func() {
+				userStore.FindByEmailReturns(nil, db.NotFoundErr())
 				jwtDecoder.ClaimSetReturns(map[string]interface{}{"email": "bar@foo.com"}, nil)
 			})
 
@@ -148,15 +165,36 @@ var _ = Describe("Auth", func() {
 			})
 		})
 
-		When("local auth fails", func() {
+		When("findByEmail fails", func() {
 			BeforeEach(func() {
-				localAuther.LocalAuthReturns(nil, errors.New("oops"))
+				userStore.FindByEmailReturns(nil, errors.New("oops"))
 			})
 
-			It("returns an internal server error", func() {
+			It("fails with internal server error", func() {
 				Expect(recorder.Code).To(Equal(http.StatusInternalServerError))
 			})
 		})
 
+		When("create user fails", func() {
+			BeforeEach(func() {
+				userStore.FindByEmailReturns(nil, db.NotFoundErr())
+				userStore.CreateReturns(nil, errors.New("oops"))
+			})
+
+			It("fails with internal server error", func() {
+				Expect(recorder.Code).To(Equal(http.StatusInternalServerError))
+			})
+		})
+
+		When("setting the session fails", func() {
+			BeforeEach(func() {
+				sessionSetter.SetReturns(errors.New("oops"))
+			})
+
+			It("fails with internal server error", func() {
+				Expect(recorder.Code).To(Equal(http.StatusInternalServerError))
+			})
+
+		})
 	})
 })

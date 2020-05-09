@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/kieron-pivotal/menu-planner-app/db"
 	"github.com/kieron-pivotal/menu-planner-app/session"
 )
 
@@ -27,14 +28,16 @@ type JWTDecoder interface {
 //counterfeiter:generate . User
 
 type User interface {
+	Email() string
 	Name() string
 	ID() int
 }
 
-//counterfeiter:generate . LocalAuther
+//counterfeiter:generate . UserStore
 
-type LocalAuther interface {
-	LocalAuth(email, name string) (user User, err error)
+type UserStore interface {
+	FindByEmail(email string) (User, error)
+	Create(email, name string) (User, error)
 }
 
 //counterfeiter:generate . SessionSetter
@@ -47,7 +50,7 @@ type AuthHandler struct {
 	audience      string
 	tokenVerifier TokenVerifier
 	jwtDecoder    JWTDecoder
-	localAuther   LocalAuther
+	userStore     UserStore
 	sessionSetter SessionSetter
 }
 
@@ -55,7 +58,7 @@ func New(
 	audience string,
 	tokenVerifier TokenVerifier,
 	jwtDecoder JWTDecoder,
-	localAuther LocalAuther,
+	userStore UserStore,
 	sessionSetter SessionSetter,
 ) *AuthHandler {
 
@@ -63,7 +66,7 @@ func New(
 		audience:      audience,
 		tokenVerifier: tokenVerifier,
 		jwtDecoder:    jwtDecoder,
-		localAuther:   localAuther,
+		userStore:     userStore,
 		sessionSetter: sessionSetter,
 	}
 }
@@ -108,16 +111,25 @@ func (h *AuthHandler) AuthGoogle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if name, err = extractString(claimSet, "name"); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	user, err := h.localAuther.LocalAuth(email, name)
+	user, err := h.userStore.FindByEmail(email)
 	if err != nil {
-		log.Printf("local-auth: %v\n", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		if !db.IsNotFoundErr(err) {
+			log.Printf("user-store-find-by-email failed: %v\n", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if name, err = extractString(claimSet, "name"); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		user, err = h.userStore.Create(email, name)
+		if err != nil {
+			log.Printf("user-store-create failed: %v\n", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 	}
 
 	sess := session.Session{
@@ -131,20 +143,6 @@ func (h *AuthHandler) AuthGoogle(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
-	// var respObj struct {
-	// 	Token string `json:"token"`
-	// }
-	// respObj.Token = tokenString
-	// respBytes, err := json.Marshal(respObj)
-
-	// if err != nil {
-	// 	log.Printf("marshal-response: %v\n", err)
-	// 	w.WriteHeader(http.StatusInternalServerError)
-	// 	return
-	// }
-
-	// w.Write(respBytes)
 }
 
 func extractString(claimSet map[string]interface{}, key string) (string, error) {

@@ -8,6 +8,16 @@ import (
 )
 
 type FakeUser struct {
+	EmailStub        func() string
+	emailMutex       sync.RWMutex
+	emailArgsForCall []struct {
+	}
+	emailReturns struct {
+		result1 string
+	}
+	emailReturnsOnCall map[int]struct {
+		result1 string
+	}
 	IDStub        func() int
 	iDMutex       sync.RWMutex
 	iDArgsForCall []struct {
@@ -30,6 +40,58 @@ type FakeUser struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeUser) Email() string {
+	fake.emailMutex.Lock()
+	ret, specificReturn := fake.emailReturnsOnCall[len(fake.emailArgsForCall)]
+	fake.emailArgsForCall = append(fake.emailArgsForCall, struct {
+	}{})
+	fake.recordInvocation("Email", []interface{}{})
+	fake.emailMutex.Unlock()
+	if fake.EmailStub != nil {
+		return fake.EmailStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.emailReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeUser) EmailCallCount() int {
+	fake.emailMutex.RLock()
+	defer fake.emailMutex.RUnlock()
+	return len(fake.emailArgsForCall)
+}
+
+func (fake *FakeUser) EmailCalls(stub func() string) {
+	fake.emailMutex.Lock()
+	defer fake.emailMutex.Unlock()
+	fake.EmailStub = stub
+}
+
+func (fake *FakeUser) EmailReturns(result1 string) {
+	fake.emailMutex.Lock()
+	defer fake.emailMutex.Unlock()
+	fake.EmailStub = nil
+	fake.emailReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeUser) EmailReturnsOnCall(i int, result1 string) {
+	fake.emailMutex.Lock()
+	defer fake.emailMutex.Unlock()
+	fake.EmailStub = nil
+	if fake.emailReturnsOnCall == nil {
+		fake.emailReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.emailReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
 }
 
 func (fake *FakeUser) ID() int {
@@ -139,6 +201,8 @@ func (fake *FakeUser) NameReturnsOnCall(i int, result1 string) {
 func (fake *FakeUser) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.emailMutex.RLock()
+	defer fake.emailMutex.RUnlock()
 	fake.iDMutex.RLock()
 	defer fake.iDMutex.RUnlock()
 	fake.nameMutex.RLock()
