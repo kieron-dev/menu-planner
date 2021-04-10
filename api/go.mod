@@ -7,7 +7,7 @@ require (
 	github.com/futurenda/google-auth-id-token-verifier v0.0.0-20170311140316-2a5b89f28b7e
 	github.com/gorilla/mux v1.7.4
 	github.com/gorilla/securecookie v1.1.1
-	github.com/gorilla/sessions v1.2.0
+	github.com/gorilla/sessions v1.2.1
 	github.com/lib/pq v1.3.0
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.2.3
 	github.com/onsi/ginkgo v1.12.0

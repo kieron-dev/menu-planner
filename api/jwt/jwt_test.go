@@ -9,7 +9,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Jwt", func() {
+var _ = Describe("Decoder", func() {
 
 	var (
 		token    string

@@ -1,3 +1,4 @@
+/* Package session handles everything to do with web sessions */
 package session
 
 import (
@@ -10,12 +11,13 @@ import (
 	"github.com/gorilla/sessions"
 )
 
-const sessionCookieName = "_id"
-
 type sessionKey int
 
-const ctxSessionKey sessionKey = 0
-const valuesSessionKey = "session"
+const (
+	ctxSessionKey     = sessionKey(0)
+	sessionCookieName = "_id"
+	valuesSessionKey  = "session"
+)
 
 type Manager struct {
 	sessionStore sessions.Store
@@ -29,14 +31,6 @@ type Session struct {
 
 func init() {
 	gob.Register(&Session{})
-}
-
-func createSessionStore(sessionStoreKeys [][]byte) sessions.Store {
-	store := sessions.NewFilesystemStore("", sessionStoreKeys...)
-	store.Options.Path = "/"
-	store.Options.HttpOnly = true
-	store.Options.MaxAge = 60 * 15
-	return store
 }
 
 func NewManager(sessionStoreKeys [][]byte) *Manager {
@@ -101,4 +95,12 @@ func (m *Manager) Get(ctx context.Context) (*Session, error) {
 			ctx.Value(ctxSessionKey))
 	}
 	return sesh, nil
+}
+
+func createSessionStore(sessionStoreKeys [][]byte) sessions.Store {
+	store := sessions.NewFilesystemStore("", sessionStoreKeys...)
+	store.Options.Path = "/"
+	store.Options.HttpOnly = true
+	store.Options.MaxAge = 60 * 15
+	return store
 }

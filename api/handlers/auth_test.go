@@ -3,6 +3,7 @@ package handlers_test
 import (
 	"bytes"
 	"errors"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -10,25 +11,26 @@ import (
 	"github.com/kieron-pivotal/menu-planner-app/db"
 	"github.com/kieron-pivotal/menu-planner-app/handlers"
 	"github.com/kieron-pivotal/menu-planner-app/handlers/handlersfakes"
+	"github.com/kieron-pivotal/menu-planner-app/models/modelsfakes"
+	"github.com/kieron-pivotal/menu-planner-app/session"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Auth", func() {
-
 	var (
-		httpHandlers  *handlers.AuthHandler
-		hf            http.HandlerFunc
-		tokenVerifier *handlersfakes.FakeTokenVerifier
-		jwtDecoder    *handlersfakes.FakeJWTDecoder
-		sessionSetter *handlersfakes.FakeSessionSetter
-		userStore     *handlersfakes.FakeUserStore
-		user          *handlersfakes.FakeUser
-		recorder      *httptest.ResponseRecorder
-		req           *http.Request
-		audience      string
-		bodyBytes     []byte
-		sessionCookie *http.Cookie
+		httpHandlers   *handlers.AuthHandler
+		hf             http.HandlerFunc
+		tokenVerifier  *handlersfakes.FakeTokenVerifier
+		jwtDecoder     *handlersfakes.FakeJWTDecoder
+		sessionManager *handlersfakes.FakeSessionManager
+		userStore      *handlersfakes.FakeUserStore
+		user           *modelsfakes.FakeUser
+		recorder       *httptest.ResponseRecorder
+		req            *http.Request
+		audience       string
+		bodyBytes      []byte
+		sessionCookie  *http.Cookie
 	)
 
 	BeforeEach(func() {
@@ -37,7 +39,7 @@ var _ = Describe("Auth", func() {
 		jwtDecoder = new(handlersfakes.FakeJWTDecoder)
 		jwtDecoder.ClaimSetReturns(map[string]interface{}{"email": "bar@foo.com", "name": "bar"}, nil)
 
-		user = new(handlersfakes.FakeUser)
+		user = new(modelsfakes.FakeUser)
 		user.IDReturns(12345)
 		user.NameReturns("user-name")
 
@@ -45,8 +47,8 @@ var _ = Describe("Auth", func() {
 		userStore.FindByEmailReturns(user, nil)
 
 		audience = "my.audience"
-		sessionSetter = new(handlersfakes.FakeSessionSetter)
-		httpHandlers = handlers.New(audience, tokenVerifier, jwtDecoder, userStore, sessionSetter)
+		sessionManager = new(handlersfakes.FakeSessionManager)
+		httpHandlers = handlers.NewAuthHandler(audience, tokenVerifier, jwtDecoder, userStore, sessionManager)
 		hf = http.HandlerFunc(httpHandlers.AuthGoogle)
 		recorder = httptest.NewRecorder()
 		bodyBytes = []byte("{}")
@@ -89,7 +91,8 @@ var _ = Describe("Auth", func() {
 
 			When("the user doesn't exist", func() {
 				BeforeEach(func() {
-					userStore.FindByEmailReturns(nil, db.NotFoundErr())
+					userStore.FindByEmailReturns(nil, errors.New("oops"))
+					userStore.IsNotFoundErrReturns(true)
 					userStore.CreateReturns(user, nil)
 				})
 
@@ -102,14 +105,14 @@ var _ = Describe("Auth", func() {
 			})
 
 			It("sets a new logged-in session", func() {
-				Expect(sessionSetter.SetCallCount()).To(Equal(1))
-				_, _, sess := sessionSetter.SetArgsForCall(0)
+				Expect(sessionManager.SetCallCount()).To(Equal(1))
+				_, _, sess := sessionManager.SetArgsForCall(0)
 				Expect(sess.ID).To(Equal(12345))
 				Expect(sess.Name).To(Equal("user-name"))
 				Expect(sess.IsLoggedIn).To(BeTrue())
 			})
 
-			It("succeeds", func() {
+			It("returns an ok success status", func() {
 				Expect(recorder.Code).To(Equal(http.StatusOK))
 			})
 		})
@@ -156,7 +159,8 @@ var _ = Describe("Auth", func() {
 
 		When("the user must be created but the token doesn't include name", func() {
 			BeforeEach(func() {
-				userStore.FindByEmailReturns(nil, db.NotFoundErr())
+				userStore.FindByEmailReturns(nil, errors.New("oops"))
+				userStore.IsNotFoundErrReturns(true)
 				jwtDecoder.ClaimSetReturns(map[string]interface{}{"email": "bar@foo.com"}, nil)
 			})
 
@@ -188,13 +192,71 @@ var _ = Describe("Auth", func() {
 
 		When("setting the session fails", func() {
 			BeforeEach(func() {
-				sessionSetter.SetReturns(errors.New("oops"))
+				sessionManager.SetReturns(errors.New("oops"))
 			})
 
 			It("fails with internal server error", func() {
 				Expect(recorder.Code).To(Equal(http.StatusInternalServerError))
 			})
+		})
+	})
+})
 
+var _ = Describe("Who Am I?", func() {
+	var (
+		httpHandlers   *handlers.AuthHandler
+		hf             http.HandlerFunc
+		recorder       *httptest.ResponseRecorder
+		req            *http.Request
+		sessionManager *handlersfakes.FakeSessionManager
+	)
+
+	BeforeEach(func() {
+		log.SetOutput(GinkgoWriter)
+		sessionManager = new(handlersfakes.FakeSessionManager)
+		httpHandlers = handlers.NewAuthHandler("", nil, nil, nil, sessionManager)
+		hf = http.HandlerFunc(httpHandlers.WhoAmI)
+		recorder = httptest.NewRecorder()
+	})
+
+	JustBeforeEach(func() {
+		var err error
+		req, err = http.NewRequest(http.MethodGet, "application/json", nil)
+		Expect(err).NotTo(HaveOccurred())
+		hf.ServeHTTP(recorder, req)
+	})
+
+	When("there is no session", func() {
+		BeforeEach(func() {
+			sessionManager.GetReturns(nil, errors.New("no session"))
+		})
+
+		It("returns a status not auth'ed", func() {
+			Expect(recorder.Result().StatusCode).To(Equal(http.StatusUnauthorized))
+		})
+	})
+
+	When("I'm logged out", func() {
+		BeforeEach(func() {
+			sessionManager.GetReturns(&session.Session{IsLoggedIn: false}, nil)
+		})
+
+		It("returns a status not auth'ed", func() {
+			Expect(recorder.Result().StatusCode).To(Equal(http.StatusUnauthorized))
+		})
+	})
+
+	When("I'm logged in", func() {
+		BeforeEach(func() {
+			sessionManager.GetReturns(&session.Session{IsLoggedIn: true, Name: "forest"}, nil)
+		})
+
+		It("returns OK status and prints my name", func() {
+			Expect(recorder.Result().StatusCode).To(Equal(http.StatusOK))
+			body, err := ioutil.ReadAll(recorder.Result().Body)
+			Expect(err).NotTo(HaveOccurred())
+			defer recorder.Result().Body.Close()
+			Expect(string(body)).To(ContainSubstring("Hello, forest"))
 		})
 	})
 })

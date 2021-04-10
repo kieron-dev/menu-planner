@@ -9,7 +9,5 @@ sudo -u postgres createdb "$uuid"
 sudo -u postgres psql <<EOF
 alter user $uuid with encrypted password '$passwd';
 grant all privileges on database $uuid to $uuid;
-\c $uuid
-create extension if not exists "uuid-ossp";
 EOF
 

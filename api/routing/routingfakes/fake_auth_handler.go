@@ -15,6 +15,12 @@ type FakeAuthHandler struct {
 		arg1 http.ResponseWriter
 		arg2 *http.Request
 	}
+	WhoAmIStub        func(http.ResponseWriter, *http.Request)
+	whoAmIMutex       sync.RWMutex
+	whoAmIArgsForCall []struct {
+		arg1 http.ResponseWriter
+		arg2 *http.Request
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -51,11 +57,45 @@ func (fake *FakeAuthHandler) AuthGoogleArgsForCall(i int) (http.ResponseWriter, 
 	return argsForCall.arg1, argsForCall.arg2
 }
 
+func (fake *FakeAuthHandler) WhoAmI(arg1 http.ResponseWriter, arg2 *http.Request) {
+	fake.whoAmIMutex.Lock()
+	fake.whoAmIArgsForCall = append(fake.whoAmIArgsForCall, struct {
+		arg1 http.ResponseWriter
+		arg2 *http.Request
+	}{arg1, arg2})
+	fake.recordInvocation("WhoAmI", []interface{}{arg1, arg2})
+	fake.whoAmIMutex.Unlock()
+	if fake.WhoAmIStub != nil {
+		fake.WhoAmIStub(arg1, arg2)
+	}
+}
+
+func (fake *FakeAuthHandler) WhoAmICallCount() int {
+	fake.whoAmIMutex.RLock()
+	defer fake.whoAmIMutex.RUnlock()
+	return len(fake.whoAmIArgsForCall)
+}
+
+func (fake *FakeAuthHandler) WhoAmICalls(stub func(http.ResponseWriter, *http.Request)) {
+	fake.whoAmIMutex.Lock()
+	defer fake.whoAmIMutex.Unlock()
+	fake.WhoAmIStub = stub
+}
+
+func (fake *FakeAuthHandler) WhoAmIArgsForCall(i int) (http.ResponseWriter, *http.Request) {
+	fake.whoAmIMutex.RLock()
+	defer fake.whoAmIMutex.RUnlock()
+	argsForCall := fake.whoAmIArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
 func (fake *FakeAuthHandler) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.authGoogleMutex.RLock()
 	defer fake.authGoogleMutex.RUnlock()
+	fake.whoAmIMutex.RLock()
+	defer fake.whoAmIMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

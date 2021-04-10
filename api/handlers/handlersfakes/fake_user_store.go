@@ -5,41 +5,53 @@ import (
 	"sync"
 
 	"github.com/kieron-pivotal/menu-planner-app/handlers"
+	"github.com/kieron-pivotal/menu-planner-app/models"
 )
 
 type FakeUserStore struct {
-	CreateStub        func(string, string) (handlers.User, error)
+	CreateStub        func(string, string) (models.User, error)
 	createMutex       sync.RWMutex
 	createArgsForCall []struct {
 		arg1 string
 		arg2 string
 	}
 	createReturns struct {
-		result1 handlers.User
+		result1 models.User
 		result2 error
 	}
 	createReturnsOnCall map[int]struct {
-		result1 handlers.User
+		result1 models.User
 		result2 error
 	}
-	FindByEmailStub        func(string) (handlers.User, error)
+	FindByEmailStub        func(string) (models.User, error)
 	findByEmailMutex       sync.RWMutex
 	findByEmailArgsForCall []struct {
 		arg1 string
 	}
 	findByEmailReturns struct {
-		result1 handlers.User
+		result1 models.User
 		result2 error
 	}
 	findByEmailReturnsOnCall map[int]struct {
-		result1 handlers.User
+		result1 models.User
 		result2 error
+	}
+	IsNotFoundErrStub        func(error) bool
+	isNotFoundErrMutex       sync.RWMutex
+	isNotFoundErrArgsForCall []struct {
+		arg1 error
+	}
+	isNotFoundErrReturns struct {
+		result1 bool
+	}
+	isNotFoundErrReturnsOnCall map[int]struct {
+		result1 bool
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeUserStore) Create(arg1 string, arg2 string) (handlers.User, error) {
+func (fake *FakeUserStore) Create(arg1 string, arg2 string) (models.User, error) {
 	fake.createMutex.Lock()
 	ret, specificReturn := fake.createReturnsOnCall[len(fake.createArgsForCall)]
 	fake.createArgsForCall = append(fake.createArgsForCall, struct {
@@ -64,7 +76,7 @@ func (fake *FakeUserStore) CreateCallCount() int {
 	return len(fake.createArgsForCall)
 }
 
-func (fake *FakeUserStore) CreateCalls(stub func(string, string) (handlers.User, error)) {
+func (fake *FakeUserStore) CreateCalls(stub func(string, string) (models.User, error)) {
 	fake.createMutex.Lock()
 	defer fake.createMutex.Unlock()
 	fake.CreateStub = stub
@@ -77,33 +89,33 @@ func (fake *FakeUserStore) CreateArgsForCall(i int) (string, string) {
 	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakeUserStore) CreateReturns(result1 handlers.User, result2 error) {
+func (fake *FakeUserStore) CreateReturns(result1 models.User, result2 error) {
 	fake.createMutex.Lock()
 	defer fake.createMutex.Unlock()
 	fake.CreateStub = nil
 	fake.createReturns = struct {
-		result1 handlers.User
+		result1 models.User
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeUserStore) CreateReturnsOnCall(i int, result1 handlers.User, result2 error) {
+func (fake *FakeUserStore) CreateReturnsOnCall(i int, result1 models.User, result2 error) {
 	fake.createMutex.Lock()
 	defer fake.createMutex.Unlock()
 	fake.CreateStub = nil
 	if fake.createReturnsOnCall == nil {
 		fake.createReturnsOnCall = make(map[int]struct {
-			result1 handlers.User
+			result1 models.User
 			result2 error
 		})
 	}
 	fake.createReturnsOnCall[i] = struct {
-		result1 handlers.User
+		result1 models.User
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeUserStore) FindByEmail(arg1 string) (handlers.User, error) {
+func (fake *FakeUserStore) FindByEmail(arg1 string) (models.User, error) {
 	fake.findByEmailMutex.Lock()
 	ret, specificReturn := fake.findByEmailReturnsOnCall[len(fake.findByEmailArgsForCall)]
 	fake.findByEmailArgsForCall = append(fake.findByEmailArgsForCall, struct {
@@ -127,7 +139,7 @@ func (fake *FakeUserStore) FindByEmailCallCount() int {
 	return len(fake.findByEmailArgsForCall)
 }
 
-func (fake *FakeUserStore) FindByEmailCalls(stub func(string) (handlers.User, error)) {
+func (fake *FakeUserStore) FindByEmailCalls(stub func(string) (models.User, error)) {
 	fake.findByEmailMutex.Lock()
 	defer fake.findByEmailMutex.Unlock()
 	fake.FindByEmailStub = stub
@@ -140,30 +152,90 @@ func (fake *FakeUserStore) FindByEmailArgsForCall(i int) string {
 	return argsForCall.arg1
 }
 
-func (fake *FakeUserStore) FindByEmailReturns(result1 handlers.User, result2 error) {
+func (fake *FakeUserStore) FindByEmailReturns(result1 models.User, result2 error) {
 	fake.findByEmailMutex.Lock()
 	defer fake.findByEmailMutex.Unlock()
 	fake.FindByEmailStub = nil
 	fake.findByEmailReturns = struct {
-		result1 handlers.User
+		result1 models.User
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeUserStore) FindByEmailReturnsOnCall(i int, result1 handlers.User, result2 error) {
+func (fake *FakeUserStore) FindByEmailReturnsOnCall(i int, result1 models.User, result2 error) {
 	fake.findByEmailMutex.Lock()
 	defer fake.findByEmailMutex.Unlock()
 	fake.FindByEmailStub = nil
 	if fake.findByEmailReturnsOnCall == nil {
 		fake.findByEmailReturnsOnCall = make(map[int]struct {
-			result1 handlers.User
+			result1 models.User
 			result2 error
 		})
 	}
 	fake.findByEmailReturnsOnCall[i] = struct {
-		result1 handlers.User
+		result1 models.User
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeUserStore) IsNotFoundErr(arg1 error) bool {
+	fake.isNotFoundErrMutex.Lock()
+	ret, specificReturn := fake.isNotFoundErrReturnsOnCall[len(fake.isNotFoundErrArgsForCall)]
+	fake.isNotFoundErrArgsForCall = append(fake.isNotFoundErrArgsForCall, struct {
+		arg1 error
+	}{arg1})
+	fake.recordInvocation("IsNotFoundErr", []interface{}{arg1})
+	fake.isNotFoundErrMutex.Unlock()
+	if fake.IsNotFoundErrStub != nil {
+		return fake.IsNotFoundErrStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.isNotFoundErrReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeUserStore) IsNotFoundErrCallCount() int {
+	fake.isNotFoundErrMutex.RLock()
+	defer fake.isNotFoundErrMutex.RUnlock()
+	return len(fake.isNotFoundErrArgsForCall)
+}
+
+func (fake *FakeUserStore) IsNotFoundErrCalls(stub func(error) bool) {
+	fake.isNotFoundErrMutex.Lock()
+	defer fake.isNotFoundErrMutex.Unlock()
+	fake.IsNotFoundErrStub = stub
+}
+
+func (fake *FakeUserStore) IsNotFoundErrArgsForCall(i int) error {
+	fake.isNotFoundErrMutex.RLock()
+	defer fake.isNotFoundErrMutex.RUnlock()
+	argsForCall := fake.isNotFoundErrArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeUserStore) IsNotFoundErrReturns(result1 bool) {
+	fake.isNotFoundErrMutex.Lock()
+	defer fake.isNotFoundErrMutex.Unlock()
+	fake.IsNotFoundErrStub = nil
+	fake.isNotFoundErrReturns = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeUserStore) IsNotFoundErrReturnsOnCall(i int, result1 bool) {
+	fake.isNotFoundErrMutex.Lock()
+	defer fake.isNotFoundErrMutex.Unlock()
+	fake.IsNotFoundErrStub = nil
+	if fake.isNotFoundErrReturnsOnCall == nil {
+		fake.isNotFoundErrReturnsOnCall = make(map[int]struct {
+			result1 bool
+		})
+	}
+	fake.isNotFoundErrReturnsOnCall[i] = struct {
+		result1 bool
+	}{result1}
 }
 
 func (fake *FakeUserStore) Invocations() map[string][][]interface{} {
@@ -173,6 +245,8 @@ func (fake *FakeUserStore) Invocations() map[string][][]interface{} {
 	defer fake.createMutex.RUnlock()
 	fake.findByEmailMutex.RLock()
 	defer fake.findByEmailMutex.RUnlock()
+	fake.isNotFoundErrMutex.RLock()
+	defer fake.isNotFoundErrMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

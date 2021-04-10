@@ -7,16 +7,17 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/kieron-pivotal/menu-planner-app/db"
+	"github.com/kieron-pivotal/menu-planner-app/models"
 )
 
 var _ = Describe("User", func() {
 	var (
 		store *db.UserStore
-		user  db.User
+		user  models.User
 		err   error
 		email string
 		name  string
-		uuid  []uint8
+		id    int
 	)
 
 	BeforeEach(func() {
@@ -42,20 +43,20 @@ WHERE email = $1`, email)
 				err := pg.QueryRow(`
 INSERT INTO local_user (email, name)
 VALUES ($1, $2)
-RETURNING lid`, email, name).Scan(&uuid)
+RETURNING id`, email, name).Scan(&id)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("returns it", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(user.Email()).To(Equal(email))
-				Expect(user.Id()).To(Equal(uuid))
+				Expect(user.ID()).To(Equal(id))
 			})
 		})
 
 		When("a user with the email does not exist", func() {
 			It("returns a not-found error", func() {
-				Expect(db.IsNotFoundErr(err)).To(BeTrue())
+				Expect(store.IsNotFoundErr(err)).To(BeTrue())
 			})
 		})
 	})
@@ -70,7 +71,7 @@ RETURNING lid`, email, name).Scan(&uuid)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(user.Email()).To(Equal(email))
 				Expect(user.Name()).To(Equal(name))
-				Expect(user.Id()).ToNot(BeEmpty())
+				Expect(user.ID()).ToNot(BeZero())
 			})
 		})
 

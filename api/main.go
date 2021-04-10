@@ -1,31 +1,53 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 
 	googleAuthIDTokenVerifier "github.com/futurenda/google-auth-id-token-verifier"
-	"github.com/kieron-pivotal/menu-planner-app/auth"
+	"github.com/gorilla/securecookie"
+	"github.com/kieron-pivotal/menu-planner-app/db"
 	"github.com/kieron-pivotal/menu-planner-app/handlers"
 	"github.com/kieron-pivotal/menu-planner-app/jwt"
 	"github.com/kieron-pivotal/menu-planner-app/routing"
+	"github.com/kieron-pivotal/menu-planner-app/session"
+	_ "github.com/lib/pq"
 )
 
-// TODO: get from env
-const aud = "176462381984-bfq3v9mc00v0ipvpebiaiide4l22dmoh.apps.googleusercontent.com"
-const webURI = "http://localhost:3000"
+// TODO: get all these from env
+const (
+	aud    = "176462381984-bfq3v9mc00v0ipvpebiaiide4l22dmoh.apps.googleusercontent.com"
+	webURI = "http://localhost:3000"
+	port   = 8080
+)
+
+var (
+	sign    = securecookie.GenerateRandomKey(32)
+	encrypt = securecookie.GenerateRandomKey(32)
+)
 
 func main() {
 	googleVerifier := new(googleAuthIDTokenVerifier.Verifier)
 	jwtDecoder := jwt.NewJWT()
-	localAuth := auth.NewLocalAuth()
-	handlers := handlers.New(aud, googleVerifier, jwtDecoder, localAuth)
-	routes := routing.New(webURI, handlers)
+
+	connStr := mustGetEnv("DB_CONN_STR")
+	pg, err := sql.Open("postgres", connStr)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	userStore := db.NewUserStore(pg)
+
+	sessionManager := session.NewManager([][]byte{sign, encrypt})
+	authHandler := handlers.NewAuthHandler(aud, googleVerifier, jwtDecoder, userStore, sessionManager)
+	routes := routing.New(webURI, sessionManager, authHandler)
 	r := routes.SetupRoutes()
 
-	log.Fatal(http.ListenAndServe("localhost:8080", r))
+	log.Fatal(http.ListenAndServe("localhost:"+strconv.Itoa(port), r))
 }
 
 func mustGetEnv(v string) string {

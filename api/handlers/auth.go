@@ -1,13 +1,14 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 
-	"github.com/kieron-pivotal/menu-planner-app/db"
+	"github.com/kieron-pivotal/menu-planner-app/models"
 	"github.com/kieron-pivotal/menu-planner-app/session"
 )
 
@@ -25,109 +26,105 @@ type JWTDecoder interface {
 	ClaimSet(token string) (map[string]interface{}, error)
 }
 
-//counterfeiter:generate . User
-
-type User interface {
-	Email() string
-	Name() string
-	ID() int
-}
-
 //counterfeiter:generate . UserStore
 
 type UserStore interface {
-	FindByEmail(email string) (User, error)
-	Create(email, name string) (User, error)
+	IsNotFoundErr(error) bool
+	FindByEmail(email string) (models.User, error)
+	Create(email, name string) (models.User, error)
 }
 
-//counterfeiter:generate . SessionSetter
+//counterfeiter:generate . SessionManager
 
-type SessionSetter interface {
+type SessionManager interface {
+	Get(ctx context.Context) (*session.Session, error)
 	Set(r *http.Request, w http.ResponseWriter, s *session.Session) error
 }
 
 type AuthHandler struct {
-	audience      string
-	tokenVerifier TokenVerifier
-	jwtDecoder    JWTDecoder
-	userStore     UserStore
-	sessionSetter SessionSetter
+	audience       string
+	tokenVerifier  TokenVerifier
+	jwtDecoder     JWTDecoder
+	userStore      UserStore
+	sessionManager SessionManager
 }
 
-func New(
+func NewAuthHandler(
 	audience string,
 	tokenVerifier TokenVerifier,
 	jwtDecoder JWTDecoder,
 	userStore UserStore,
-	sessionSetter SessionSetter,
+	sessionSetter SessionManager,
 ) *AuthHandler {
-
 	return &AuthHandler{
-		audience:      audience,
-		tokenVerifier: tokenVerifier,
-		jwtDecoder:    jwtDecoder,
-		userStore:     userStore,
-		sessionSetter: sessionSetter,
+		audience:       audience,
+		tokenVerifier:  tokenVerifier,
+		jwtDecoder:     jwtDecoder,
+		userStore:      userStore,
+		sessionManager: sessionSetter,
 	}
 }
 
 func (h *AuthHandler) AuthGoogle(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
+	log.Print("auth-handler")
+
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Printf("read-body: %v\n", err)
-		w.WriteHeader(http.StatusInternalServerError)
+		http.Error(w, "", http.StatusInternalServerError)
 		return
 	}
 
 	var authReq struct {
-		TokenID string `json:"tokenID"`
+		IDToken string `json:"tokenID"`
 	}
 
 	err = json.Unmarshal(body, &authReq)
 	if err != nil {
 		log.Printf("json unmarshal: %v\n", err)
-		w.WriteHeader(http.StatusBadRequest)
-		log.Printf("done writing the header\n")
+		http.Error(w, "", http.StatusBadRequest)
 		return
 	}
 
-	if err = h.tokenVerifier.VerifyIDToken(authReq.TokenID, []string{h.audience}); err != nil {
+	if err = h.tokenVerifier.VerifyIDToken(authReq.IDToken, []string{h.audience}); err != nil {
 		log.Printf("token-verifier: %v\n", err)
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, "", http.StatusBadRequest)
 		return
 	}
 
-	claimSet, err := h.jwtDecoder.ClaimSet(authReq.TokenID)
+	claimSet, err := h.jwtDecoder.ClaimSet(authReq.IDToken)
 	if err != nil {
 		log.Printf("jwt-decoder: %v\n", err)
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, "", http.StatusBadRequest)
 		return
 	}
 
 	var email, name string
 	if email, err = extractString(claimSet, "email"); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		log.Printf("extract-string: %v", err)
+		http.Error(w, "", http.StatusBadRequest)
 		return
 	}
 
 	user, err := h.userStore.FindByEmail(email)
 	if err != nil {
-		if !db.IsNotFoundErr(err) {
-			log.Printf("user-store-find-by-email failed: %v\n", err)
-			w.WriteHeader(http.StatusInternalServerError)
+		if !h.userStore.IsNotFoundErr(err) {
+			log.Printf("user-store-find-by-email: %v\n", err)
+			http.Error(w, "", http.StatusInternalServerError)
 			return
 		}
 
 		if name, err = extractString(claimSet, "name"); err != nil {
+			log.Printf("extract-string: %v\n", err)
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
 		user, err = h.userStore.Create(email, name)
 		if err != nil {
-			log.Printf("user-store-create failed: %v\n", err)
-			w.WriteHeader(http.StatusInternalServerError)
+			log.Printf("user-store-create: %v\n", err)
+			http.Error(w, "", http.StatusInternalServerError)
 			return
 		}
 	}
@@ -138,11 +135,20 @@ func (h *AuthHandler) AuthGoogle(w http.ResponseWriter, r *http.Request) {
 		Name:       user.Name(),
 	}
 
-	if err := h.sessionSetter.Set(r, w, &sess); err != nil {
+	if err := h.sessionManager.Set(r, w, &sess); err != nil {
 		log.Printf("failed-to-set-session: %v\n", err)
-		w.WriteHeader(http.StatusInternalServerError)
+		http.Error(w, "", http.StatusInternalServerError)
 		return
 	}
+}
+
+func (h *AuthHandler) WhoAmI(w http.ResponseWriter, r *http.Request) {
+	sess, err := h.sessionManager.Get(r.Context())
+	if err != nil || sess == nil || !sess.IsLoggedIn {
+		http.Error(w, "401 - Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	fmt.Fprintf(w, "Hello, %s", sess.Name)
 }
 
 func extractString(claimSet map[string]interface{}, key string) (string, error) {

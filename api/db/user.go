@@ -4,16 +4,14 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+
+	"github.com/kieron-pivotal/menu-planner-app/models"
 )
 
-var notFoundErr = errors.New("no matching row found")
+var errNotFound = errors.New("no matching row found")
 
 func NotFoundErr() error {
-	return notFoundErr
-}
-
-func IsNotFoundErr(err error) bool {
-	return err == notFoundErr
+	return errNotFound
 }
 
 type UserStore struct {
@@ -41,44 +39,48 @@ func (u User) Name() string {
 	return u.name
 }
 
-func (u User) Id() []uint8 {
-	return u.lid
+func (u User) ID() int {
+	return u.id
 }
 
-func (s *UserStore) FindByEmail(email string) (User, error) {
+func (s *UserStore) IsNotFoundErr(err error) bool {
+	return err == errNotFound
+}
+
+func (s *UserStore) FindByEmail(email string) (models.User, error) {
 	var e, name string
-	var id []uint8
+	var id int
 	err := s.sqlDB.QueryRow(`
-SELECT email, name, lid
+SELECT id, email, name
 FROM local_user
 WHERE email = $1
-`, email).Scan(&e, &name, &id)
+`, email).Scan(&id, &e, &name)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return User{}, notFoundErr
+			return User{}, errNotFound
 		}
 		return User{}, fmt.Errorf("find-by-email failed %w", err)
 	}
 	return User{
 		email: e,
 		name:  name,
-		lid:   id,
+		id:    id,
 	}, nil
 }
 
-func (s *UserStore) Create(email, name string) (User, error) {
-	var uuid []uint8
+func (s *UserStore) Create(email, name string) (models.User, error) {
+	var id int
 	err := s.sqlDB.QueryRow(`
 INSERT INTO local_user (email, name)
 VALUES ($1, $2)
-RETURNING lid`, email, name).Scan(&uuid)
+RETURNING id`, email, name).Scan(&id)
 	if err != nil {
 		return User{}, fmt.Errorf("create-user failed %w", err)
 	}
 
 	return User{
+		id:    id,
 		email: email,
 		name:  name,
-		lid:   uuid,
 	}, nil
 }
