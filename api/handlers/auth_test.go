@@ -238,7 +238,7 @@ var _ = Describe("Who Am I?", func() {
 
 	When("I'm logged out", func() {
 		BeforeEach(func() {
-			sessionManager.GetReturns(&session.Session{IsLoggedIn: false}, nil)
+			sessionManager.GetReturns(&session.AuthInfo{IsLoggedIn: false}, nil)
 		})
 
 		It("returns a status not auth'ed", func() {
@@ -248,7 +248,7 @@ var _ = Describe("Who Am I?", func() {
 
 	When("I'm logged in", func() {
 		BeforeEach(func() {
-			sessionManager.GetReturns(&session.Session{IsLoggedIn: true, Name: "forest"}, nil)
+			sessionManager.GetReturns(&session.AuthInfo{IsLoggedIn: true, Name: "forest"}, nil)
 		})
 
 		It("returns OK status and prints my name", func() {

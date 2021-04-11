@@ -14,23 +14,23 @@ import (
 type sessionKey int
 
 const (
-	ctxSessionKey     = sessionKey(0)
-	sessionCookieName = "_id"
-	valuesSessionKey  = "session"
+	ctxSessionKey     sessionKey = 0
+	sessionCookieName            = "_id"
+	authInfoKey                  = "authInfo"
 )
 
 type Manager struct {
 	sessionStore sessions.Store
 }
 
-type Session struct {
+type AuthInfo struct {
 	Name       string
 	ID         int
 	IsLoggedIn bool
 }
 
 func init() {
-	gob.Register(&Session{})
+	gob.Register(&AuthInfo{})
 }
 
 func NewManager(sessionStoreKeys [][]byte) *Manager {
@@ -52,29 +52,30 @@ func (m *Manager) SessionMiddleware(next http.Handler) http.Handler {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		// session.Save(r, w)
 
-		val := session.Values[valuesSessionKey]
+		val := session.Values[authInfoKey]
 		if val != nil {
-			var ourSession *Session
+			var ourSession *AuthInfo
 			var ok bool
-			if ourSession, ok = val.(*Session); !ok {
-				log.Printf("not a *Session, actually a %T", val)
+			if ourSession, ok = val.(*AuthInfo); !ok {
+				log.Printf("not a *AuthInfo, actually a %T", val)
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
 			r = r.Clone(context.WithValue(r.Context(), ctxSessionKey, ourSession))
+
+			session.Save(r, w)
 		}
 		next.ServeHTTP(w, r)
 	})
 }
 
-func (m *Manager) Set(r *http.Request, w http.ResponseWriter, s *Session) error {
+func (m *Manager) Set(r *http.Request, w http.ResponseWriter, authInfo *AuthInfo) error {
 	session, err := m.sessionStore.Get(r, sessionCookieName)
 	if err != nil {
 		return fmt.Errorf("session-set: failed to get session %w", err)
 	}
-	session.Values[valuesSessionKey] = s
+	session.Values[authInfoKey] = authInfo
 
 	if err = session.Save(r, w); err != nil {
 		return fmt.Errorf("session-set: failed to save session %w", err)
@@ -83,18 +84,17 @@ func (m *Manager) Set(r *http.Request, w http.ResponseWriter, s *Session) error 
 	return nil
 }
 
-func (m *Manager) Get(ctx context.Context) (*Session, error) {
+func (m *Manager) Get(ctx context.Context) (*AuthInfo, error) {
 	val := ctx.Value(ctxSessionKey)
 	if val == nil {
 		return nil, nil
 	}
 
-	sesh, ok := val.(*Session)
+	authInfo, ok := val.(*AuthInfo)
 	if !ok {
-		return nil, fmt.Errorf("wrong type %T for session, expected *session.Session",
-			ctx.Value(ctxSessionKey))
+		return nil, fmt.Errorf("wrong type %T for session, expected *session.AuthInfo", val)
 	}
-	return sesh, nil
+	return authInfo, nil
 }
 
 func createSessionStore(sessionStoreKeys [][]byte) sessions.Store {

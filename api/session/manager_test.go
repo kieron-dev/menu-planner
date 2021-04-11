@@ -79,7 +79,7 @@ var _ = Describe("Session", func() {
 	When("no session cookie is passed in, but session is saved", func() {
 		BeforeEach(func() {
 			lambda = func(w http.ResponseWriter, r *http.Request) {
-				sessionManager.Set(r, w, &session.Session{Name: "alice"})
+				sessionManager.Set(r, w, &session.AuthInfo{Name: "alice"})
 			}
 		})
 
@@ -93,12 +93,12 @@ var _ = Describe("Session", func() {
 
 	Context("session storage", func() {
 		var (
-			ourSession *session.Session
+			ourSession *session.AuthInfo
 			setErr     error
 		)
 
 		BeforeEach(func() {
-			ourSession = &session.Session{
+			ourSession = &session.AuthInfo{
 				Name:       "bob",
 				ID:         10,
 				IsLoggedIn: true,
@@ -122,7 +122,7 @@ var _ = Describe("Session", func() {
 				req.AddCookie(cookies[0])
 				resp = httptest.NewRecorder()
 
-				var sess *session.Session
+				var sess *session.AuthInfo
 				next = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					var err error
 					sess, err = sessionManager.Get(r.Context())

@@ -15,6 +15,12 @@ type FakeAuthHandler struct {
 		arg1 http.ResponseWriter
 		arg2 *http.Request
 	}
+	LogoutStub        func(http.ResponseWriter, *http.Request)
+	logoutMutex       sync.RWMutex
+	logoutArgsForCall []struct {
+		arg1 http.ResponseWriter
+		arg2 *http.Request
+	}
 	WhoAmIStub        func(http.ResponseWriter, *http.Request)
 	whoAmIMutex       sync.RWMutex
 	whoAmIArgsForCall []struct {
@@ -57,6 +63,38 @@ func (fake *FakeAuthHandler) AuthGoogleArgsForCall(i int) (http.ResponseWriter, 
 	return argsForCall.arg1, argsForCall.arg2
 }
 
+func (fake *FakeAuthHandler) Logout(arg1 http.ResponseWriter, arg2 *http.Request) {
+	fake.logoutMutex.Lock()
+	fake.logoutArgsForCall = append(fake.logoutArgsForCall, struct {
+		arg1 http.ResponseWriter
+		arg2 *http.Request
+	}{arg1, arg2})
+	fake.recordInvocation("Logout", []interface{}{arg1, arg2})
+	fake.logoutMutex.Unlock()
+	if fake.LogoutStub != nil {
+		fake.LogoutStub(arg1, arg2)
+	}
+}
+
+func (fake *FakeAuthHandler) LogoutCallCount() int {
+	fake.logoutMutex.RLock()
+	defer fake.logoutMutex.RUnlock()
+	return len(fake.logoutArgsForCall)
+}
+
+func (fake *FakeAuthHandler) LogoutCalls(stub func(http.ResponseWriter, *http.Request)) {
+	fake.logoutMutex.Lock()
+	defer fake.logoutMutex.Unlock()
+	fake.LogoutStub = stub
+}
+
+func (fake *FakeAuthHandler) LogoutArgsForCall(i int) (http.ResponseWriter, *http.Request) {
+	fake.logoutMutex.RLock()
+	defer fake.logoutMutex.RUnlock()
+	argsForCall := fake.logoutArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
 func (fake *FakeAuthHandler) WhoAmI(arg1 http.ResponseWriter, arg2 *http.Request) {
 	fake.whoAmIMutex.Lock()
 	fake.whoAmIArgsForCall = append(fake.whoAmIArgsForCall, struct {
@@ -94,6 +132,8 @@ func (fake *FakeAuthHandler) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.authGoogleMutex.RLock()
 	defer fake.authGoogleMutex.RUnlock()
+	fake.logoutMutex.RLock()
+	defer fake.logoutMutex.RUnlock()
 	fake.whoAmIMutex.RLock()
 	defer fake.whoAmIMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

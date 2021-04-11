@@ -37,8 +37,8 @@ type UserStore interface {
 //counterfeiter:generate . SessionManager
 
 type SessionManager interface {
-	Get(ctx context.Context) (*session.Session, error)
-	Set(r *http.Request, w http.ResponseWriter, s *session.Session) error
+	Get(ctx context.Context) (*session.AuthInfo, error)
+	Set(r *http.Request, w http.ResponseWriter, s *session.AuthInfo) error
 }
 
 type AuthHandler struct {
@@ -67,7 +67,6 @@ func NewAuthHandler(
 
 func (h *AuthHandler) AuthGoogle(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
-	log.Print("auth-handler")
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -129,7 +128,7 @@ func (h *AuthHandler) AuthGoogle(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	sess := session.Session{
+	sess := session.AuthInfo{
 		IsLoggedIn: true,
 		ID:         user.ID(),
 		Name:       user.Name(),
@@ -149,6 +148,18 @@ func (h *AuthHandler) WhoAmI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Fprintf(w, "Hello, %s", sess.Name)
+}
+
+func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	sess, err := h.sessionManager.Get(r.Context())
+	if err != nil || sess == nil || !sess.IsLoggedIn {
+		return
+	}
+	sess.IsLoggedIn = false
+	if err = h.sessionManager.Set(r, w, sess); err != nil {
+		http.Error(w, "", http.StatusInternalServerError)
+	}
+	fmt.Fprint(w, "logged out")
 }
 
 func extractString(claimSet map[string]interface{}, key string) (string, error) {

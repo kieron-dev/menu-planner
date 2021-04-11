@@ -11,25 +11,25 @@ import (
 )
 
 type FakeSessionManager struct {
-	GetStub        func(context.Context) (*session.Session, error)
+	GetStub        func(context.Context) (*session.AuthInfo, error)
 	getMutex       sync.RWMutex
 	getArgsForCall []struct {
 		arg1 context.Context
 	}
 	getReturns struct {
-		result1 *session.Session
+		result1 *session.AuthInfo
 		result2 error
 	}
 	getReturnsOnCall map[int]struct {
-		result1 *session.Session
+		result1 *session.AuthInfo
 		result2 error
 	}
-	SetStub        func(*http.Request, http.ResponseWriter, *session.Session) error
+	SetStub        func(*http.Request, http.ResponseWriter, *session.AuthInfo) error
 	setMutex       sync.RWMutex
 	setArgsForCall []struct {
 		arg1 *http.Request
 		arg2 http.ResponseWriter
-		arg3 *session.Session
+		arg3 *session.AuthInfo
 	}
 	setReturns struct {
 		result1 error
@@ -41,7 +41,7 @@ type FakeSessionManager struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeSessionManager) Get(arg1 context.Context) (*session.Session, error) {
+func (fake *FakeSessionManager) Get(arg1 context.Context) (*session.AuthInfo, error) {
 	fake.getMutex.Lock()
 	ret, specificReturn := fake.getReturnsOnCall[len(fake.getArgsForCall)]
 	fake.getArgsForCall = append(fake.getArgsForCall, struct {
@@ -65,7 +65,7 @@ func (fake *FakeSessionManager) GetCallCount() int {
 	return len(fake.getArgsForCall)
 }
 
-func (fake *FakeSessionManager) GetCalls(stub func(context.Context) (*session.Session, error)) {
+func (fake *FakeSessionManager) GetCalls(stub func(context.Context) (*session.AuthInfo, error)) {
 	fake.getMutex.Lock()
 	defer fake.getMutex.Unlock()
 	fake.GetStub = stub
@@ -78,39 +78,39 @@ func (fake *FakeSessionManager) GetArgsForCall(i int) context.Context {
 	return argsForCall.arg1
 }
 
-func (fake *FakeSessionManager) GetReturns(result1 *session.Session, result2 error) {
+func (fake *FakeSessionManager) GetReturns(result1 *session.AuthInfo, result2 error) {
 	fake.getMutex.Lock()
 	defer fake.getMutex.Unlock()
 	fake.GetStub = nil
 	fake.getReturns = struct {
-		result1 *session.Session
+		result1 *session.AuthInfo
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeSessionManager) GetReturnsOnCall(i int, result1 *session.Session, result2 error) {
+func (fake *FakeSessionManager) GetReturnsOnCall(i int, result1 *session.AuthInfo, result2 error) {
 	fake.getMutex.Lock()
 	defer fake.getMutex.Unlock()
 	fake.GetStub = nil
 	if fake.getReturnsOnCall == nil {
 		fake.getReturnsOnCall = make(map[int]struct {
-			result1 *session.Session
+			result1 *session.AuthInfo
 			result2 error
 		})
 	}
 	fake.getReturnsOnCall[i] = struct {
-		result1 *session.Session
+		result1 *session.AuthInfo
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeSessionManager) Set(arg1 *http.Request, arg2 http.ResponseWriter, arg3 *session.Session) error {
+func (fake *FakeSessionManager) Set(arg1 *http.Request, arg2 http.ResponseWriter, arg3 *session.AuthInfo) error {
 	fake.setMutex.Lock()
 	ret, specificReturn := fake.setReturnsOnCall[len(fake.setArgsForCall)]
 	fake.setArgsForCall = append(fake.setArgsForCall, struct {
 		arg1 *http.Request
 		arg2 http.ResponseWriter
-		arg3 *session.Session
+		arg3 *session.AuthInfo
 	}{arg1, arg2, arg3})
 	fake.recordInvocation("Set", []interface{}{arg1, arg2, arg3})
 	fake.setMutex.Unlock()
@@ -130,13 +130,13 @@ func (fake *FakeSessionManager) SetCallCount() int {
 	return len(fake.setArgsForCall)
 }
 
-func (fake *FakeSessionManager) SetCalls(stub func(*http.Request, http.ResponseWriter, *session.Session) error) {
+func (fake *FakeSessionManager) SetCalls(stub func(*http.Request, http.ResponseWriter, *session.AuthInfo) error) {
 	fake.setMutex.Lock()
 	defer fake.setMutex.Unlock()
 	fake.SetStub = stub
 }
 
-func (fake *FakeSessionManager) SetArgsForCall(i int) (*http.Request, http.ResponseWriter, *session.Session) {
+func (fake *FakeSessionManager) SetArgsForCall(i int) (*http.Request, http.ResponseWriter, *session.AuthInfo) {
 	fake.setMutex.RLock()
 	defer fake.setMutex.RUnlock()
 	argsForCall := fake.setArgsForCall[i]

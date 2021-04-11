@@ -3,7 +3,7 @@ module github.com/kieron-pivotal/menu-planner-app
 go 1.14
 
 require (
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
 	github.com/futurenda/google-auth-id-token-verifier v0.0.0-20170311140316-2a5b89f28b7e
 	github.com/gorilla/mux v1.7.4
 	github.com/gorilla/securecookie v1.1.1
