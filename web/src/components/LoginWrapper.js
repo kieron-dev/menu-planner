@@ -4,7 +4,7 @@ import Home from "./Home";
 import Welcome from "./Welcome";
 
 const LoginWrapper = () => {
-    const { auth, setAuthenticated, logout } = useAuth();
+    const { auth, setAuthenticated, setUnauthenticated } = useAuth();
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -12,21 +12,19 @@ const LoginWrapper = () => {
             credentials: "include",
             method: "GET",
         })
-            .then((resp) => {
+            .then(resp => {
                 if (!resp.ok) {
-                    logout();
                     setLoading(false);
+                    setUnauthenticated();
                     throw new Error("not-authed");
                 }
                 return resp;
             })
-            .then((data) => data.json())
-            .then((data) => setAuthenticated(data.name))
+            .then(data => data.json())
+            .then(data => setAuthenticated(data.name))
             .then(() => setLoading(false))
-            .catch((err) => {
-                console.error(JSON.stringify(err, null, 2));
-            });
-    }, [logout, setAuthenticated])
+            .catch(() => { });
+    }, [setUnauthenticated, setAuthenticated])
 
     if (loading) return <p>Loading...</p>;
 

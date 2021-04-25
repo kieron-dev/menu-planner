@@ -12,8 +12,14 @@ export const AuthProvider = ({ children }) => {
     const [auth, setAuth] = useState(initAuth);
 
     const setAuthenticated = useCallback(
-        (name) => {
+        name => {
             const newAuth = { isAuthed: true, name: name };
+            setAuth(newAuth);
+        }, []);
+
+    const setUnauthenticated = useCallback(
+        () => {
+            const newAuth = { isAuthed: false };
             setAuth(newAuth);
         }, []);
 
@@ -27,7 +33,7 @@ export const AuthProvider = ({ children }) => {
                     if (!resp.ok) throw new Error(resp.statusText);
                     return resp;
                 })
-                .then(() => setAuth({ isAuthed: false }))
+                .then(setUnauthenticated)
                 .catch(console.error);
         }, []);
 
@@ -40,19 +46,19 @@ export const AuthProvider = ({ children }) => {
                 "Content-Type": "application/json",
             },
         })
-            .then((resp) => {
+            .then(resp => {
                 if (!resp.ok) throw new Error(resp.statusText);
                 return resp;
             })
-            .then((data) => data.json())
-            .then((data) => {
+            .then(data => data.json())
+            .then(data => {
                 setAuthenticated(data.name);
             })
-            .catch((err) => console.error(err));
+            .catch(console.error);
     };
 
     return (
-        <AuthContext.Provider value={{ auth, authGoogle, setAuthenticated, logout }}>
+        <AuthContext.Provider value={{ auth, authGoogle, setAuthenticated, setUnauthenticated, logout }}>
             {children}
         </AuthContext.Provider>
     );
