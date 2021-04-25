@@ -76,7 +76,7 @@ func (h *AuthHandler) AuthGoogle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var authReq struct {
-		IDToken string `json:"tokenID"`
+		IDToken string `json:"idToken"`
 	}
 
 	err = json.Unmarshal(body, &authReq)
@@ -139,15 +139,21 @@ func (h *AuthHandler) AuthGoogle(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "", http.StatusInternalServerError)
 		return
 	}
+
+	w.Header().Add("Content-Type", "application/json")
+	fmt.Fprintf(w, `{"name": "%s"}`, user.Name())
 }
 
 func (h *AuthHandler) WhoAmI(w http.ResponseWriter, r *http.Request) {
 	sess, err := h.sessionManager.Get(r.Context())
 	if err != nil || sess == nil || !sess.IsLoggedIn {
-		http.Error(w, "401 - Unauthorized", http.StatusUnauthorized)
+		http.Error(w, `{"error": "unauthorized"}`, http.StatusUnauthorized)
+
 		return
 	}
-	fmt.Fprintf(w, "Hello, %s", sess.Name)
+
+	w.Header().Add("Content-Type", "application/json")
+	fmt.Fprintf(w, `{"name": "%s"}`, sess.Name)
 }
 
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
@@ -157,6 +163,7 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	}
 	sess.IsLoggedIn = false
 	if err = h.sessionManager.Set(r, w, sess); err != nil {
+		log.Printf("failed-to-set-session: %v\n", err)
 		http.Error(w, "", http.StatusInternalServerError)
 	}
 	fmt.Fprint(w, "logged out")

@@ -1,8 +1,8 @@
-import React from 'react';
-import LoginWrapper from './components/LoginWrapper';
-import {AuthProvider} from './components/AuthProvider';
+import React from "react";
+import LoginWrapper from "./components/LoginWrapper";
+import { AuthProvider } from "./components/AuthProvider";
 
-import 'semantic-ui-css/semantic.min.css';
+import "semantic-ui-css/semantic.min.css";
 
 function App() {
   return (

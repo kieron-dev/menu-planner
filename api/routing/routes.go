@@ -41,7 +41,7 @@ func (r Routes) SetupRoutes() *mux.Router {
 
 	m.HandleFunc("/authGoogle", r.authHandler.AuthGoogle).Methods("POST", "OPTIONS")
 	m.HandleFunc("/whoami", r.authHandler.WhoAmI).Methods("GET", "OPTIONS")
-	m.HandleFunc("/logout", r.authHandler.Logout).Methods("GET", "OPTIONS")
+	m.HandleFunc("/logout", r.authHandler.Logout).Methods("POST", "OPTIONS")
 	m.Use(mux.CORSMethodMiddleware(m))
 	m.Use(r.CORSOriginMiddleware)
 	m.Use(r.sessionManager.SessionMiddleware)

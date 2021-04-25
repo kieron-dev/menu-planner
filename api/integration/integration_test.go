@@ -42,7 +42,7 @@ var _ = Describe("Integration", func() {
 
 				jstr := `{"email":"foo@bar.com", "name":"foo bar"}`
 				b64str := base64.StdEncoding.EncodeToString([]byte(jstr))
-				loginData = fmt.Sprintf(`{"tokenID": "xxx.%s.zzz"}`, b64str)
+				loginData = fmt.Sprintf(`{"idToken": "xxx.%s.zzz"}`, b64str)
 			})
 
 			It("returns a session cookie which can access privileged routes", func() {
@@ -68,7 +68,7 @@ var _ = Describe("Integration", func() {
 				body, err := ioutil.ReadAll(resp.Body)
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(string(body)).To(ContainSubstring("Hello, foo bar"))
+				Expect(string(body)).To(ContainSubstring(`{"name": "foo bar"}`))
 			})
 
 			When("an auth'ed session receives a logout", func() {
@@ -96,7 +96,7 @@ var _ = Describe("Integration", func() {
 					cookies = resp.Cookies()
 					Expect(cookies).To(HaveLen(1))
 
-					req, err = http.NewRequest(http.MethodGet, mockServer.URL+"/logout", nil)
+					req, err = http.NewRequest(http.MethodPost, mockServer.URL+"/logout", nil)
 					Expect(err).NotTo(HaveOccurred())
 					req.AddCookie(cookies[0])
 

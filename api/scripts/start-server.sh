@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -u
+set -euo pipefail
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 DB_SCRIPTS_DIR="$DIR/../db/scripts"
@@ -12,9 +12,9 @@ passwd=${passwd//-/}
 
 "$DB_SCRIPTS_DIR/create-test-db.sh" "$name" "$passwd"
 
-flyway -user="$name" -password="$passwd" -url="jdbc:postgresql://localhost:5436/$name" -locations="filesystem:$DB_SCRIPTS_DIR/../migrations" migrate
+flyway -user="$name" -password="$passwd" -url="jdbc:postgresql://localhost/$name" -locations="filesystem:$DB_SCRIPTS_DIR/../migrations" migrate
 
-export DB_CONN_STR="host=localhost port=5436 dbname=$name user=$name password=$passwd"
+export DB_CONN_STR="host=localhost dbname=$name user=$name password=$passwd"
 
 go run $DIR/../main.go
 

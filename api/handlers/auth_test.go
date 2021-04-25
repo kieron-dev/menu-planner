@@ -68,7 +68,7 @@ var _ = Describe("Auth", func() {
 	Context("google auth", func() {
 		When("the token is valid", func() {
 			BeforeEach(func() {
-				bodyBytes = []byte(`{"tokenID":"my.google.token"}`)
+				bodyBytes = []byte(`{"idToken":"my.google.token"}`)
 				jwtDecoder.ClaimSetReturns(map[string]interface{}{"name": "bob", "email": "bob@bits.com"}, nil)
 			})
 
@@ -256,7 +256,7 @@ var _ = Describe("Who Am I?", func() {
 			body, err := ioutil.ReadAll(recorder.Result().Body)
 			Expect(err).NotTo(HaveOccurred())
 			defer recorder.Result().Body.Close()
-			Expect(string(body)).To(ContainSubstring("Hello, forest"))
+			Expect(string(body)).To(ContainSubstring(`{"name": "forest"}`))
 		})
 	})
 })
