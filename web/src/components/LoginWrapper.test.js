@@ -1,53 +1,41 @@
 import React from 'react';
-import { render, cleanup, waitForElement } from '@testing-library/react';
+import { rest } from 'msw';
+import { setupServer } from 'msw/node';
+import { render, waitFor, screen } from '@testing-library/react';
 import App from '../App';
 
-describe('login wrapper', () => {
-    var fakeFetch;
+const server = setupServer(
+    rest.get(process.env.REACT_APP_API_URI + '/whoami', (_, res, ctx) => {
+        return res(ctx.json({ name: 'bob' }));
+    })
+);
 
-    beforeEach(() => {
-        fakeFetch = jest.spyOn(window, 'fetch');
-    });
+beforeAll(() => server.listen());
+afterEach(() => server.resetHandlers());
+afterAll(() => server.close());
 
-    afterEach(() => {
-        cleanup()
-    });
-
-    it('calls the /whoami endpoint', async () => {
-        fakeFetch.mockReturnValue(new Promise(f => f));
+describe('when authenticated', () => {
+    it('shows the home page', async () => {
         render(<App />);
 
-        const prefix = process.env.REACT_APP_API_URI;
-        expect(fakeFetch).toHaveBeenCalledWith(
-            `${prefix}/whoami`,
-            {
-                credentials: 'include',
-                method: 'GET',
-            }
-        );
-
+        await waitFor(() => screen.getByRole('button'));
+        expect(screen.getByRole('button')).toHaveTextContent(/logout/i);
     });
+});
 
-    describe('when logged in', () => {
-        it('shows the home page', async () => {
-            fakeFetch.mockResolvedValueOnce({
-                ok: true,
-                json: async () => ({
-                    "name": "bob"
-                })
+describe('when not authenticated', () => {
+    beforeEach(() => {
+        server.use(
+            rest.get(process.env.REACT_APP_API_URI + '/whoami', (_, res, ctx) => {
+                return res(ctx.status(401));
             })
-            const { getByText } = render(<App />);
-            const logoutBtn = await waitForElement(() => getByText(/Logout/i));
-            expect(logoutBtn).toBeInTheDocument();
-        });
+        );
     });
 
-    describe('when not logged in', () => {
-        it('shows login page', async () => {
-            fakeFetch.mockResolvedValue({ ok: false });
-            const { getByText } = render(<App />);
-            const googleLogin = await waitForElement(() => getByText(/Sign in with Google/i));
-            expect(googleLogin).toBeInTheDocument();
-        });
+    it('shows the login page', async () => {
+        render(<App />);
+
+        await waitFor(() => screen.getByRole('button'));
+        expect(screen.getByRole('button')).toHaveTextContent(/google/i);
     });
 });
