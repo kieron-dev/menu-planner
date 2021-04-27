@@ -8,34 +8,31 @@ const initAuth = {
 const AuthContext = createContext();
 export const useAuth = () => useContext(AuthContext);
 
-export const AuthProvider = ({ children }) => {
+export default function AuthProvider({ children }) {
     const [auth, setAuth] = useState(initAuth);
 
-    const setAuthenticated = useCallback(
-        name => {
-            const newAuth = { isAuthed: true, name: name };
-            setAuth(newAuth);
-        }, []);
+    const setAuthenticated = useCallback((name) => {
+        const newAuth = { isAuthed: true, name: name };
+        setAuth(newAuth);
+    }, []);
 
-    const setUnauthenticated = useCallback(
-        () => {
-            const newAuth = { isAuthed: false };
-            setAuth(newAuth);
-        }, []);
+    const setUnauthenticated = useCallback(() => {
+        const newAuth = { isAuthed: false };
+        setAuth(newAuth);
+    }, []);
 
-    const logout = useCallback(
-        () => {
-            fetch(process.env.REACT_APP_API_URI + "/logout", {
-                credentials: "include",
-                method: 'POST',
+    const logout = useCallback(() => {
+        fetch(process.env.REACT_APP_API_URI + "/logout", {
+            credentials: "include",
+            method: "POST",
+        })
+            .then((resp) => {
+                if (!resp.ok) throw new Error(resp.statusText);
+                return resp;
             })
-                .then(resp => {
-                    if (!resp.ok) throw new Error(resp.statusText);
-                    return resp;
-                })
-                .then(setUnauthenticated)
-                .catch(console.error);
-        }, []);
+            .then(setUnauthenticated)
+            .catch(console.error);
+    }, []);
 
     const authGoogle = (token) => {
         fetch(process.env.REACT_APP_API_URI + "/authGoogle", {
@@ -46,20 +43,28 @@ export const AuthProvider = ({ children }) => {
                 "Content-Type": "application/json",
             },
         })
-            .then(resp => {
+            .then((resp) => {
                 if (!resp.ok) throw new Error(resp.statusText);
                 return resp;
             })
-            .then(data => data.json())
-            .then(data => {
+            .then((data) => data.json())
+            .then((data) => {
                 setAuthenticated(data.name);
             })
             .catch(console.error);
     };
 
     return (
-        <AuthContext.Provider value={{ auth, authGoogle, setAuthenticated, setUnauthenticated, logout }}>
+        <AuthContext.Provider
+            value={{
+                auth,
+                authGoogle,
+                setAuthenticated,
+                setUnauthenticated,
+                logout,
+            }}
+        >
             {children}
         </AuthContext.Provider>
     );
-};
+}

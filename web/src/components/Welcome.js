@@ -16,7 +16,12 @@ const Welcome = () => {
 
     return (
         <>
-            <Segment inverted textAlign="center" vertical style={{ minHeight: 700 }}>
+            <Segment
+                inverted
+                textAlign="center"
+                vertical
+                style={{ minHeight: 700 }}
+            >
                 <Container text>
                     <Header
                         inverted
@@ -29,7 +34,7 @@ const Welcome = () => {
                         }}
                     >
                         Menu-Planner
-          </Header>
+                    </Header>
                     <Header
                         inverted
                         as="h2"
@@ -41,7 +46,7 @@ const Welcome = () => {
                         }}
                     >
                         Sign in to experience the delights!
-          </Header>
+                    </Header>
                     <GoogleLogin
                         clientId="176462381984-bfq3v9mc00v0ipvpebiaiide4l22dmoh.apps.googleusercontent.com"
                         onSuccess={successGoogle}

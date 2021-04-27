@@ -8,11 +8,11 @@ const LoginWrapper = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetch(process.env.REACT_APP_API_URI + '/whoami', {
+        fetch(process.env.REACT_APP_API_URI + "/whoami", {
             credentials: "include",
             method: "GET",
         })
-            .then(resp => {
+            .then((resp) => {
                 if (!resp.ok) {
                     setLoading(false);
                     setUnauthenticated();
@@ -20,11 +20,11 @@ const LoginWrapper = () => {
                 }
                 return resp;
             })
-            .then(data => data.json())
-            .then(data => setAuthenticated(data.name))
+            .then((data) => data.json())
+            .then((data) => setAuthenticated(data.name))
             .then(() => setLoading(false))
-            .catch(() => { });
-    }, [setUnauthenticated, setAuthenticated])
+            .catch(() => {});
+    }, [setUnauthenticated, setAuthenticated]);
 
     if (loading) return <p>Loading...</p>;
 
