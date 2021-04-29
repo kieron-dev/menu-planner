@@ -32,7 +32,7 @@ export default function AuthProvider({ children }) {
             })
             .then(setUnauthenticated)
             .catch(console.error);
-    }, []);
+    }, [setUnauthenticated]);
 
     const authGoogle = (token) => {
         fetch(process.env.REACT_APP_API_URI + "/authGoogle", {
