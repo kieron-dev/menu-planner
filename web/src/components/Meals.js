@@ -1,41 +1,26 @@
 import React, { useState } from "react";
-import { Form, Card, Button, Dropdown } from "semantic-ui-react";
+import { Form, Card } from "semantic-ui-react";
 import Meal from "./Meal";
 import { v4 } from "uuid";
+import { useRecipes } from "./RecipeProvider";
 
 export default function Meals() {
     const [mealRecipes, setMealRecipes] = useState([]);
-    const [recipes, setRecipes] = useState(
-        ["Spaghetti Bolognese", "Toad in the Hole", "Spicy Chicken Tagine"].map(
-            (r) => ({
-                key: r,
-                text: r,
-                value: v4(),
-            })
-        )
-    );
-
     const [meals, setMeals] = useState([]);
+    const { recipes, addRecipe } = useRecipes();
 
     const changeName = (_, { value }) => {
-        console.log("value", value);
         setMealRecipes(value);
     };
 
     const handleAddition = (_, { value }) => {
-        const newId = v4();
-        const newRecipes = recipes.concat({
-            key: value,
-            text: value,
-            value: newId,
-        });
-        setRecipes(newRecipes);
-        setMealRecipes(mealRecipes.concat(newId));
+        const newRecipe = addRecipe(value);
+        setMealRecipes(mealRecipes.concat(newRecipe.value));
     };
 
     const addMeal = (e) => {
         e.preventDefault();
-        const newMeals = meals.concat({ id: v4(), name: mealRecipes });
+        const newMeals = meals.concat({ id: v4(), recipes: mealRecipes });
         setMeals(newMeals);
         setMealRecipes([]);
     };
@@ -48,30 +33,29 @@ export default function Meals() {
     return (
         <>
             <Form onSubmit={addMeal} style={{ marginBottom: "5ex" }}>
-                <Form.Field>
-                    <Dropdown
-                        placeholder="Add recipes"
+                <Form.Group>
+                    <Form.Dropdown
+                        placeholder="Choose meal recipes..."
                         value={mealRecipes}
-                        options={recipes}
+                        options={[...recipes.values()]}
                         onChange={changeName}
                         onAddItem={handleAddition}
-                        fluid
+                        width="14"
                         search
                         selection
                         multiple
                         allowAdditions
                         additionPosition="bottom"
                     />
-                </Form.Field>
-                <Button type="submit">Add Meal</Button>
+                    <Form.Button type="submit">Add Meal</Form.Button>
+                </Form.Group>
             </Form>
 
             <Card.Group>
                 {meals.map((m) => (
                     <Meal
                         id={m.id}
-                        header={m.name}
-                        description={m.description}
+                        recipeIDs={m.recipes}
                         removeMeal={removeMeal}
                     />
                 ))}
