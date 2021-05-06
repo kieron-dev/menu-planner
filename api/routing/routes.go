@@ -16,6 +16,12 @@ type AuthHandler interface {
 	Logout(w http.ResponseWriter, r *http.Request)
 }
 
+//counterfeiter:generate . RecipeHandler
+
+type RecipeHandler interface {
+	GetRecipes(w http.ResponseWriter, r *http.Request)
+}
+
 //counterfeiter:generate . SessionManager
 
 type SessionManager interface {
@@ -26,13 +32,17 @@ type Routes struct {
 	frontendURI    string
 	sessionManager SessionManager
 	authHandler    AuthHandler
+	recipeHandler  RecipeHandler
 }
 
-func New(frontendURI string, sessionManager SessionManager, authHandler AuthHandler) Routes {
+func New(
+	frontendURI string, sessionManager SessionManager,
+	authHandler AuthHandler, recipeHandler RecipeHandler) Routes {
 	return Routes{
 		frontendURI:    frontendURI,
 		sessionManager: sessionManager,
 		authHandler:    authHandler,
+		recipeHandler:  recipeHandler,
 	}
 }
 
@@ -42,6 +52,7 @@ func (r Routes) SetupRoutes() *mux.Router {
 	m.HandleFunc("/authGoogle", r.authHandler.AuthGoogle).Methods("POST", "OPTIONS")
 	m.HandleFunc("/whoami", r.authHandler.WhoAmI).Methods("GET", "OPTIONS")
 	m.HandleFunc("/logout", r.authHandler.Logout).Methods("POST", "OPTIONS")
+	m.HandleFunc("/recipes", r.recipeHandler.GetRecipes).Methods("GET", "OPTIONS")
 	m.Use(mux.CORSMethodMiddleware(m))
 	m.Use(r.CORSOriginMiddleware)
 	m.Use(r.sessionManager.SessionMiddleware)

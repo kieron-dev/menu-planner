@@ -44,7 +44,8 @@ func main() {
 
 	sessionManager := session.NewManager([][]byte{sign, encrypt})
 	authHandler := handlers.NewAuthHandler(aud, googleVerifier, jwtDecoder, userStore, sessionManager)
-	routes := routing.New(webURI, sessionManager, authHandler)
+	recipeHandler := handlers.NewRecipeHandler(sessionManager)
+	routes := routing.New(webURI, sessionManager, authHandler, recipeHandler)
 	r := routes.SetupRoutes()
 
 	log.Fatal(http.ListenAndServe("localhost:"+strconv.Itoa(port), r))
