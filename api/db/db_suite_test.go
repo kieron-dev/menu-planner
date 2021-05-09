@@ -4,11 +4,10 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"testing"
 
 	_ "github.com/lib/pq"
 )
@@ -20,6 +19,7 @@ func TestDb(t *testing.T) {
 
 var (
 	pg *sql.DB
+	tx *sql.Tx
 )
 
 var _ = BeforeSuite(func() {
@@ -27,6 +27,16 @@ var _ = BeforeSuite(func() {
 	var err error
 	pg, err = sql.Open("postgres", connStr)
 	Expect(err).NotTo(HaveOccurred())
+})
+
+var _ = BeforeEach(func() {
+	var err error
+	tx, err = pg.Begin()
+	Expect(err).NotTo(HaveOccurred())
+})
+
+var _ = AfterEach(func() {
+	Expect(tx.Rollback()).To(Succeed())
 })
 
 func mustGetEnv(v string) string {

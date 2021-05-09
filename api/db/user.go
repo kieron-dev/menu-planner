@@ -15,10 +15,10 @@ func NotFoundErr() error {
 }
 
 type UserStore struct {
-	sqlDB *sql.DB
+	sqlDB DB
 }
 
-func NewUserStore(sqlDB *sql.DB) *UserStore {
+func NewUserStore(sqlDB DB) *UserStore {
 	return &UserStore{
 		sqlDB: sqlDB,
 	}

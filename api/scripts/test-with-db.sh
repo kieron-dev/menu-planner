@@ -16,6 +16,6 @@ flyway -user="$name" -password="$passwd" -url="jdbc:postgresql://localhost/$name
 
 export DB_CONN_STR="host=localhost dbname=$name user=$name password=$passwd"
 
-ginkgo -r $@
+ginkgo -p -r $@
 
 "$DB_SCRIPTS_DIR/delete-test-db.sh" "$name"

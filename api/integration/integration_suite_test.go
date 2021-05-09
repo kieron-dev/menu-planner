@@ -23,8 +23,11 @@ var (
 	mockServer     *httptest.Server
 	audience       string
 	userStore      *db.UserStore
+	recipeStore    *db.RecipeStore
 	jwtDecoder     *jwt.JWT
 	sessionManager *session.Manager
+	pg             *sql.DB
+	tx             *sql.Tx
 )
 
 func TestIntegration(t *testing.T) {
@@ -34,17 +37,29 @@ func TestIntegration(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	audience = "my-web-app-id"
-
 	connStr := mustGetEnv("DB_CONN_STR")
-	pg, err := sql.Open("postgres", connStr)
-	Expect(err).NotTo(HaveOccurred())
 
-	userStore = db.NewUserStore(pg)
+	var err error
+	pg, err = sql.Open("postgres", connStr)
+	Expect(err).NotTo(HaveOccurred())
 
 	jwtDecoder = jwt.NewJWT()
 
 	keys := [][]byte{securecookie.GenerateRandomKey(32), securecookie.GenerateRandomKey(32)}
 	sessionManager = session.NewManager(keys)
+})
+
+var _ = BeforeEach(func() {
+	var err error
+	tx, err = pg.Begin()
+	Expect(err).NotTo(HaveOccurred())
+
+	userStore = db.NewUserStore(tx)
+	recipeStore = db.NewRecipeStore(tx)
+})
+
+var _ = AfterEach(func() {
+	Expect(tx.Rollback()).To(Succeed())
 })
 
 func mustGetEnv(v string) string {

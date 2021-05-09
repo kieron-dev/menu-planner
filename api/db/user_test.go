@@ -21,16 +21,9 @@ var _ = Describe("User", func() {
 	)
 
 	BeforeEach(func() {
-		store = db.NewUserStore(pg)
+		store = db.NewUserStore(tx)
 		email = "jill@example.com"
 		name = "Jillian Ex"
-	})
-
-	AfterEach(func() {
-		_, err := pg.Exec(`
-DELETE FROM local_user
-WHERE email = $1`, email)
-		Expect(err).NotTo(HaveOccurred())
 	})
 
 	Context("FindByEmail", func() {
@@ -40,7 +33,7 @@ WHERE email = $1`, email)
 
 		When("a user with the email exists in the DB", func() {
 			BeforeEach(func() {
-				err := pg.QueryRow(`
+				err := tx.QueryRow(`
 INSERT INTO local_user (email, name)
 VALUES ($1, $2)
 RETURNING id`, email, name).Scan(&id)

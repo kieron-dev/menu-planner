@@ -19,11 +19,9 @@ var _ = Describe("Integration", func() {
 	BeforeEach(func() {
 		frontendURI = "https://my.frontend.com"
 		tokenVerifier = new(handlersfakes.FakeTokenVerifier)
-	})
 
-	JustBeforeEach(func() {
 		authHandler := handlers.NewAuthHandler(audience, tokenVerifier, jwtDecoder, userStore, sessionManager)
-		recipeHandler := handlers.NewRecipeHandler(sessionManager)
+		recipeHandler := handlers.NewRecipeHandler(sessionManager, recipeStore)
 		r := routing.New(frontendURI, sessionManager, authHandler, recipeHandler)
 		mockServer = httptest.NewServer(r.SetupRoutes())
 	})
@@ -162,7 +160,7 @@ var _ = Describe("Integration", func() {
 					cookie = cookies[0]
 				})
 
-				It("returns a JSON list of recipes", func() {
+				It("returns an empty JSON list of recipes", func() {
 					Expect(resp.StatusCode).To(Equal(http.StatusOK))
 					Expect(resp.Header.Get("Content-Type")).To(Equal("application/json"))
 
@@ -170,7 +168,7 @@ var _ = Describe("Integration", func() {
 					Expect(err).NotTo(HaveOccurred())
 					defer resp.Body.Close()
 
-					Expect(string(b)).To(ContainSubstring("[{"))
+					Expect(string(b)).To(HavePrefix("[]"))
 				})
 			})
 		})

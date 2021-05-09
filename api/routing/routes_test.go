@@ -11,17 +11,18 @@ import (
 )
 
 var _ = Describe("Routes", func() {
-
 	Context("routing", func() {
 		var (
 			mockServer     *httptest.Server
 			authHandler    *routingfakes.FakeAuthHandler
+			recipeHandler  *routingfakes.FakeRecipeHandler
 			frontendURI    = "https://foo.com"
 			sessionManager *routingfakes.FakeSessionManager
 		)
 
 		BeforeEach(func() {
 			authHandler = new(routingfakes.FakeAuthHandler)
+			recipeHandler = new(routingfakes.FakeRecipeHandler)
 			sessionManager = new(routingfakes.FakeSessionManager)
 			// noop middleware
 			sessionManager.SessionMiddlewareStub = func(next http.Handler) http.Handler {
@@ -29,7 +30,7 @@ var _ = Describe("Routes", func() {
 					next.ServeHTTP(w, r)
 				})
 			}
-			router := routing.New(frontendURI, sessionManager, authHandler)
+			router := routing.New(frontendURI, sessionManager, authHandler, recipeHandler)
 			mockServer = httptest.NewServer(router.SetupRoutes())
 		})
 
@@ -77,6 +78,13 @@ var _ = Describe("Routes", func() {
 				Expect(authHandler.AuthGoogleCallCount()).To(Equal(1))
 			})
 		})
-	})
 
+		Context("recipes", func() {
+			It("calls getRecipes handler on GET /recipes", func() {
+				_, err := http.Get(mockServer.URL + "/recipes")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(recipeHandler.GetRecipesCallCount()).To(Equal(1))
+			})
+		})
+	})
 })

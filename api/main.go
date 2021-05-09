@@ -41,10 +41,11 @@ func main() {
 	}
 
 	userStore := db.NewUserStore(pg)
+	recipeStore := db.NewRecipeStore(pg)
 
 	sessionManager := session.NewManager([][]byte{sign, encrypt})
 	authHandler := handlers.NewAuthHandler(aud, googleVerifier, jwtDecoder, userStore, sessionManager)
-	recipeHandler := handlers.NewRecipeHandler(sessionManager)
+	recipeHandler := handlers.NewRecipeHandler(sessionManager, recipeStore)
 	routes := routing.New(webURI, sessionManager, authHandler, recipeHandler)
 	r := routes.SetupRoutes()
 
