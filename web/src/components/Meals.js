@@ -14,8 +14,9 @@ export default function Meals() {
     };
 
     const handleAddition = (_, { value }) => {
-        const newRecipe = addRecipe(value);
-        setMealRecipes(mealRecipes.concat(newRecipe.value));
+        addRecipe(value).then((r) =>
+            setMealRecipes(mealRecipes.concat(r.value))
+        );
     };
 
     const addMeal = (e) => {

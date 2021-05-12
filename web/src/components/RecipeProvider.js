@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { v4 } from "uuid";
 
 const RecipeContext = createContext();
 export const useRecipes = () => useContext(RecipeContext);
@@ -32,16 +31,34 @@ export default function RecipeProvider({ children }) {
     }, []);
 
     const addRecipe = (name) => {
-        const newId = v4();
-        const newRecipe = {
-            key: name,
-            text: name,
-            value: newId,
-        };
-        const newRecipes = new Map(recipes).set(newId, newRecipe);
-        setRecipes(newRecipes);
+        return new Promise((resolve, reject) => {
+            fetch(process.env.REACT_APP_API_URI + "/recipes", {
+                credentials: "include",
+                method: "POST",
+                body: JSON.stringify({ name }),
+            })
+                .then((resp) => {
+                    if (!resp.ok) {
+                        reject(resp.statusText);
+                        throw new Error(resp.statusText);
+                    }
 
-        return newRecipe;
+                    return resp;
+                })
+                .then((r) => r.json())
+                .then((r) => {
+                    const newRecipes = new Map(recipes);
+                    const newRecipe = {
+                        key: r.name,
+                        text: r.name,
+                        value: r.id,
+                    };
+                    newRecipes.set(newRecipe.value, newRecipe);
+                    setRecipes(newRecipes);
+
+                    resolve(newRecipe);
+                });
+        });
     };
 
     return (
