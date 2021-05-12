@@ -8,3 +8,5 @@ CREATE TABLE recipe (
             REFERENCES local_user(id)
 );
 
+CREATE INDEX recipe__user_id
+    ON recipe (user_id);
