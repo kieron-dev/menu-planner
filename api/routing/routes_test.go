@@ -3,6 +3,7 @@ package routing_test
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 
 	"github.com/kieron-pivotal/menu-planner-app/routing"
 	"github.com/kieron-pivotal/menu-planner-app/routing/routingfakes"
@@ -84,6 +85,13 @@ var _ = Describe("Routes", func() {
 				_, err := http.Get(mockServer.URL + "/recipes")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(recipeHandler.GetRecipesCallCount()).To(Equal(1))
+			})
+
+			It("calls newRecipe handler on POST /recipes", func() {
+				body := strings.NewReader("")
+				_, err := http.Post(mockServer.URL+"/recipes", "application/json", body)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(recipeHandler.NewRecipeCallCount()).To(Equal(1))
 			})
 		})
 	})

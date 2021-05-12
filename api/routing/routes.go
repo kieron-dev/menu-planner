@@ -20,6 +20,7 @@ type AuthHandler interface {
 
 type RecipeHandler interface {
 	GetRecipes(w http.ResponseWriter, r *http.Request)
+	NewRecipe(w http.ResponseWriter, r *http.Request)
 }
 
 //counterfeiter:generate . SessionManager
@@ -53,6 +54,7 @@ func (r Routes) SetupRoutes() *mux.Router {
 	m.HandleFunc("/whoami", r.authHandler.WhoAmI).Methods("GET", "OPTIONS")
 	m.HandleFunc("/logout", r.authHandler.Logout).Methods("POST", "OPTIONS")
 	m.HandleFunc("/recipes", r.recipeHandler.GetRecipes).Methods("GET", "OPTIONS")
+	m.HandleFunc("/recipes", r.recipeHandler.NewRecipe).Methods("POST", "OPTIONS")
 	m.Use(mux.CORSMethodMiddleware(m))
 	m.Use(r.CORSOriginMiddleware)
 	m.Use(r.sessionManager.SessionMiddleware)

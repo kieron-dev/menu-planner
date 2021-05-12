@@ -22,19 +22,6 @@ func NewRecipeStore(sqlDB DB) *RecipeStore {
 	}
 }
 
-type Recipe struct {
-	id   int
-	name string
-}
-
-func (r Recipe) Name() string {
-	return r.name
-}
-
-func (r Recipe) ID() int {
-	return r.id
-}
-
 func (s *RecipeStore) IsNotFoundErr(err error) bool {
 	return err == errNotFound
 }
@@ -55,11 +42,24 @@ WHERE user_id = $1
 	}
 
 	for rows.Next() {
-		recipe := Recipe{}
-		rows.Scan(&recipe.id, &recipe.name)
+		recipe := models.Recipe{}
+		rows.Scan(&recipe.ID, &recipe.Name)
 
 		res = append(res, recipe)
 	}
 
 	return res, nil
+}
+
+func (s *RecipeStore) Insert(recipe models.Recipe) (models.Recipe, error) {
+	row := s.sqlDB.QueryRow(`INSERT INTO recipe
+    (name, user_id)
+    VALUES ($1, $2)
+    RETURNING (id)`, recipe.Name, recipe.UserID)
+
+	if err := row.Scan(&recipe.ID); err != nil {
+		return models.Recipe{}, fmt.Errorf("insert failed: %w", err)
+	}
+
+	return recipe, nil
 }

@@ -9,6 +9,19 @@ import (
 )
 
 type FakeRecipeStore struct {
+	InsertStub        func(models.Recipe) (models.Recipe, error)
+	insertMutex       sync.RWMutex
+	insertArgsForCall []struct {
+		arg1 models.Recipe
+	}
+	insertReturns struct {
+		result1 models.Recipe
+		result2 error
+	}
+	insertReturnsOnCall map[int]struct {
+		result1 models.Recipe
+		result2 error
+	}
 	ListStub        func(int) ([]models.Recipe, error)
 	listMutex       sync.RWMutex
 	listArgsForCall []struct {
@@ -24,6 +37,69 @@ type FakeRecipeStore struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeRecipeStore) Insert(arg1 models.Recipe) (models.Recipe, error) {
+	fake.insertMutex.Lock()
+	ret, specificReturn := fake.insertReturnsOnCall[len(fake.insertArgsForCall)]
+	fake.insertArgsForCall = append(fake.insertArgsForCall, struct {
+		arg1 models.Recipe
+	}{arg1})
+	fake.recordInvocation("Insert", []interface{}{arg1})
+	fake.insertMutex.Unlock()
+	if fake.InsertStub != nil {
+		return fake.InsertStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.insertReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeRecipeStore) InsertCallCount() int {
+	fake.insertMutex.RLock()
+	defer fake.insertMutex.RUnlock()
+	return len(fake.insertArgsForCall)
+}
+
+func (fake *FakeRecipeStore) InsertCalls(stub func(models.Recipe) (models.Recipe, error)) {
+	fake.insertMutex.Lock()
+	defer fake.insertMutex.Unlock()
+	fake.InsertStub = stub
+}
+
+func (fake *FakeRecipeStore) InsertArgsForCall(i int) models.Recipe {
+	fake.insertMutex.RLock()
+	defer fake.insertMutex.RUnlock()
+	argsForCall := fake.insertArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeRecipeStore) InsertReturns(result1 models.Recipe, result2 error) {
+	fake.insertMutex.Lock()
+	defer fake.insertMutex.Unlock()
+	fake.InsertStub = nil
+	fake.insertReturns = struct {
+		result1 models.Recipe
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeRecipeStore) InsertReturnsOnCall(i int, result1 models.Recipe, result2 error) {
+	fake.insertMutex.Lock()
+	defer fake.insertMutex.Unlock()
+	fake.InsertStub = nil
+	if fake.insertReturnsOnCall == nil {
+		fake.insertReturnsOnCall = make(map[int]struct {
+			result1 models.Recipe
+			result2 error
+		})
+	}
+	fake.insertReturnsOnCall[i] = struct {
+		result1 models.Recipe
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeRecipeStore) List(arg1 int) ([]models.Recipe, error) {
@@ -92,6 +168,8 @@ func (fake *FakeRecipeStore) ListReturnsOnCall(i int, result1 []models.Recipe, r
 func (fake *FakeRecipeStore) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.insertMutex.RLock()
+	defer fake.insertMutex.RUnlock()
 	fake.listMutex.RLock()
 	defer fake.listMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

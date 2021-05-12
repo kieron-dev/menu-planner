@@ -3,13 +3,17 @@ package integration_test
 import (
 	"bytes"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 
 	"github.com/kieron-pivotal/menu-planner-app/handlers"
 	"github.com/kieron-pivotal/menu-planner-app/handlers/handlersfakes"
+	"github.com/kieron-pivotal/menu-planner-app/models"
 	"github.com/kieron-pivotal/menu-planner-app/routing"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -120,13 +124,17 @@ var _ = Describe("Integration", func() {
 	})
 
 	Context("recipes", func() {
-		Context("GET /recipes", func() {
-			var (
-				req    *http.Request
-				resp   *http.Response
-				cookie *http.Cookie
-			)
+		var (
+			req    *http.Request
+			resp   *http.Response
+			cookie *http.Cookie
+		)
 
+		AfterEach(func() {
+			resp.Body.Close()
+		})
+
+		Context("GET /recipes", func() {
 			JustBeforeEach(func() {
 				var err error
 				req, err = http.NewRequest(http.MethodGet, mockServer.URL+"/recipes", nil)
@@ -138,10 +146,6 @@ var _ = Describe("Integration", func() {
 
 				resp, err = http.DefaultClient.Do(req)
 				Expect(err).NotTo(HaveOccurred())
-			})
-
-			AfterEach(func() {
-				resp.Body.Close()
 			})
 
 			When("not auth'ed", func() {
@@ -169,6 +173,60 @@ var _ = Describe("Integration", func() {
 					defer resp.Body.Close()
 
 					Expect(string(b)).To(HavePrefix("[]"))
+				})
+			})
+		})
+
+		Context("POST /recipes", func() {
+			var body io.Reader
+
+			BeforeEach(func() {
+				body = strings.NewReader(`{"name":"Roast Beef"}`)
+			})
+
+			JustBeforeEach(func() {
+				var err error
+				req, err = http.NewRequest(http.MethodPost, mockServer.URL+"/recipes", body)
+				Expect(err).NotTo(HaveOccurred())
+
+				if cookie != nil {
+					req.AddCookie(cookie)
+				}
+
+				resp, err = http.DefaultClient.Do(req)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			When("not auth'ed", func() {
+				It("returns an unauthorized status", func() {
+					Expect(resp.StatusCode).To(Equal(http.StatusUnauthorized))
+				})
+			})
+
+			When("auth'ed", func() {
+				BeforeEach(func() {
+					r, err := login()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(r.StatusCode).To(Equal(http.StatusOK))
+					cookies := r.Cookies()
+					Expect(cookies).To(HaveLen(1))
+					cookie = cookies[0]
+				})
+
+				It("returns the inserted recipe with ID", func() {
+					Expect(resp.StatusCode).To(Equal(http.StatusCreated))
+					Expect(resp.Header.Get("Content-Type")).To(Equal("application/json"))
+
+					b, err := ioutil.ReadAll(resp.Body)
+					Expect(err).NotTo(HaveOccurred())
+					defer resp.Body.Close()
+
+					var recipe models.Recipe
+					err = json.Unmarshal(b, &recipe)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(recipe.Name).To(Equal("Roast Beef"))
+					Expect(recipe.ID).To(BeNumerically(">", 0))
 				})
 			})
 		})

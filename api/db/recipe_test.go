@@ -9,6 +9,9 @@ import (
 
 var _ = Describe("Recipe", func() {
 	var recipeStore *db.RecipeStore
+	BeforeEach(func() {
+		recipeStore = db.NewRecipeStore(tx)
+	})
 
 	Describe("Listing recipes", func() {
 		var (
@@ -19,7 +22,6 @@ var _ = Describe("Recipe", func() {
 
 		BeforeEach(func() {
 			userID = 234
-			recipeStore = db.NewRecipeStore(tx)
 
 			_, err := tx.Exec(`insert into local_user(id, name, email)
                     VALUES (123, 'bob', 'bob@example.com'),
@@ -54,9 +56,50 @@ var _ = Describe("Recipe", func() {
 			It("returns an recipes 2 and 3", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(recipes).To(HaveLen(2))
-				Expect(recipes[0].Name()).To(Equal("recipe 2"))
-				Expect(recipes[1].Name()).To(Equal("recipe 3"))
+				Expect(recipes[0].Name).To(Equal("recipe 2"))
+				Expect(recipes[1].Name).To(Equal("recipe 3"))
 			})
+		})
+	})
+
+	Describe("Inserting a recipe", func() {
+		var (
+			recipe         models.Recipe
+			insertErr      error
+			returnedRecipe models.Recipe
+		)
+
+		BeforeEach(func() {
+			recipe = models.Recipe{
+				Name:   "jim bob",
+				ID:     0,
+				UserID: 123,
+			}
+
+			_, err := tx.Exec(`INSERT INTO local_user
+                (id, name, email)
+                VALUES (123, 'bob', 'bob@example.com')`)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		JustBeforeEach(func() {
+			returnedRecipe, insertErr = recipeStore.Insert(recipe)
+		})
+
+		It("writes it to the database", func() {
+			Expect(insertErr).NotTo(HaveOccurred())
+
+			row := tx.QueryRow(`SELECT id, name, user_id from recipe WHERE id = $1`, returnedRecipe.ID)
+			var id int
+			var name string
+			var userID int
+			err := row.Scan(&id, &name, &userID)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(name).To(Equal(recipe.Name))
+			Expect(id).To(Equal(returnedRecipe.ID))
+			Expect(id).To(BeNumerically(">", 0))
+			Expect(userID).To(Equal(recipe.UserID))
 		})
 	})
 })
