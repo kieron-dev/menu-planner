@@ -1,21 +1,16 @@
 #!/bin/bash
 
-set -u
+set -euo pipefail
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 DB_SCRIPTS_DIR="$DIR/../db/scripts"
 
-name=$(uuidgen)
-name=u${name//-/}
-passwd=$(uuidgen)
-passwd=${passwd//-/}
+if ! psql "$DB_TEST_CONN_STR" -l &>/dev/null; then
+    "$DB_SCRIPTS_DIR/create-test-db.sh" "$DB_TEST_NAME" "$DB_TEST_USER" "$DB_TEST_PASSWORD"
+fi
 
-"$DB_SCRIPTS_DIR/create-test-db.sh" "$name" "$passwd"
+flyway -user="$DB_TEST_USER" -password="$DB_TEST_PASSWORD" -url="jdbc:postgresql://localhost/$DB_TEST_NAME" -locations="filesystem:$DB_SCRIPTS_DIR/../migrations" migrate
 
-flyway -user="$name" -password="$passwd" -url="jdbc:postgresql://localhost/$name" -locations="filesystem:$DB_SCRIPTS_DIR/../migrations" migrate
-
-export DB_CONN_STR="host=localhost dbname=$name user=$name password=$passwd"
+export DB_CONN_STR="$DB_TEST_CONN_STR"
 
 ginkgo -p -r $@
-
-"$DB_SCRIPTS_DIR/delete-test-db.sh" "$name"
